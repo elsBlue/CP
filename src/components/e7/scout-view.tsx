@@ -4,12 +4,13 @@ import { CounterCard } from "@/components/e7/counter-card";
 import { TeamSlots } from "@/components/e7/team-slots";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { useCatalog } from "@/lib/e7/catalog";
+import { getHero, useCatalog } from "@/lib/e7/catalog";
 import { classifyDefense, recommendCounters } from "@/lib/e7/engine";
 import { suggestedVpDelta } from "@/lib/e7/ranks";
 import { ARCHETYPE_META } from "@/lib/e7/recipes";
 import { recordFor } from "@/lib/e7/stats";
 import { builtIds, useArenaStore } from "@/lib/e7/store";
+import { EFFECT_LABEL } from "@/lib/e7/types";
 import { cn } from "@/lib/utils";
 
 export function ScoutView() {
@@ -87,8 +88,18 @@ export function ScoutView() {
           </p>
           {read && meta ? (
             <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-              Counters on the right match this type. Won or Lost after the fight saves to your account.
+              Counters on the right match this type from your built units. Won or Lost after the fight is what proves a recipe.
             </p>
+          ) : null}
+          {read && read.watch.length > 0 ? (
+            <ul className="mt-1 flex max-w-md flex-col gap-2">
+              {read.watch.map((item) => (
+                <li key={item.key} className="text-sm leading-relaxed">
+                  <span className="font-medium">{item.label}.</span>{" "}
+                  <span className="text-muted-foreground">{item.note}</span>
+                </li>
+              ))}
+            </ul>
           ) : null}
         </header>
 
@@ -114,6 +125,93 @@ export function ScoutView() {
             pickerTitle="Enemy unit"
             labels={["Lead", "Two", "Three", "Four"]}
           />
+          {read &&
+          (read.effects.length > 0 ||
+            read.buffs.length > 0 ||
+            read.debuffs.length > 0 ||
+            read.uniqueEffects.length > 0) ? (
+            <div className="flex flex-col gap-3">
+              {read.effects.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                    Kit effects
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {read.effects.map((id) => (
+                      <span
+                        key={id}
+                        className="rounded-full bg-secondary px-3 py-1.5 text-xs text-foreground"
+                      >
+                        {EFFECT_LABEL[id]}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {read.buffs.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                    Buffs
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {read.buffs.map((name) => (
+                      <span
+                        key={name}
+                        className="rounded-full bg-secondary px-3 py-1.5 text-xs text-foreground"
+                      >
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {read.debuffs.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                    Debuffs
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {read.debuffs.map((name) => (
+                      <span
+                        key={name}
+                        className="rounded-full bg-secondary px-3 py-1.5 text-xs text-foreground"
+                      >
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {read.uniqueEffects.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                    Unique
+                  </p>
+                  <ul className="flex flex-col gap-2">
+                    {read.uniqueEffects.map((u) => {
+                      const owner = getHero(u.heroId);
+                      return (
+                        <li
+                          key={`${u.heroId}-${u.name}`}
+                          className="rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm font-medium">{u.name}</p>
+                            {owner ? (
+                              <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
+                                {owner.short}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{u.text}</p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {presets.length > 0 ? (
             <p className="text-sm text-muted-foreground">Example walls</p>
           ) : null}

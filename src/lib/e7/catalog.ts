@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { normalizeHero } from "./effects";
 import { HERO_BY_ID, HEROES } from "./heroes";
 import { PRESET_DEFENSES, RECIPES } from "./recipes";
 import type { DefensePreset, Hero, Recipe } from "./types";
@@ -12,13 +13,13 @@ type CatalogState = {
 };
 
 export const useCatalog = create<CatalogState>((set) => ({
-  heroes: HEROES,
+  heroes: HEROES.map(normalizeHero),
   recipes: RECIPES,
   presets: PRESET_DEFENSES,
   loaded: false,
   setCatalog: (next) =>
     set({
-      heroes: next.heroes,
+      heroes: next.heroes.map(normalizeHero),
       recipes: next.recipes,
       presets: next.presets,
       loaded: true,

@@ -22,11 +22,14 @@ import { ARCHETYPE_META } from "@/lib/e7/recipes";
 import { useArenaStore } from "@/lib/e7/store";
 import {
   ARCHETYPE_IDS,
+  EFFECT_IDS,
+  EFFECT_LABEL,
   ROLE_IDS,
   TAG_IDS,
   type DefensePreset,
   type GuildMember,
   type Hero,
+  type NormalEffect,
   type Recipe,
   type SlotNeed,
 } from "@/lib/e7/types";
@@ -58,6 +61,22 @@ export function AdminView() {
           Units, strategies, and wall presets are shared. Progress stays private.
         </p>
         <p className="font-mono text-sm tabular-nums text-muted-foreground">{unitCount} units</p>
+        <ol className="mt-2 max-w-lg list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground">
+          <li>
+            Meta defense units first: set <span className="text-foreground">Roles</span> (revive, strip,
+            speedcap, soulblock, evasion, bruiser) and <span className="text-foreground">Tags</span>{" "}
+            (injury, evade, anti-revive). Scout only types the wall from these.
+          </li>
+          <li>
+            Then Unique / Buffs / Debuffs on those same units. That is Scout info, not a new wall type
+            — except Harsetti, Belian, and Lisette revive.
+          </li>
+          <li>Add an icon if you have one.</li>
+          <li>
+            Hold new recipes until about eight walls are tagged that way. Then one strategy per wall
+            type, slots from units people actually build.
+          </li>
+        </ol>
       </header>
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
         {(
@@ -119,6 +138,10 @@ function HeroAdmin() {
               tier: "S",
               roles: [],
               tags: [],
+              effects: [],
+              buffs: [],
+              uniqueEffects: [],
+              debuffs: [],
               kit: "",
               defense: 5,
               offense: 5,
@@ -168,7 +191,14 @@ function HeroForm({
   onSaved: () => void;
 }) {
   const isNew = !useCatalog.getState().heroes.some((h) => h.id === initial.id);
-  const [form, setForm] = useState<Hero>({ ...initial, icon: initial.icon ?? "" });
+  const [form, setForm] = useState<Hero>({
+    ...initial,
+    icon: initial.icon ?? "",
+    effects: initial.effects ?? [],
+    buffs: initial.buffs ?? [],
+    debuffs: initial.debuffs ?? [],
+    uniqueEffects: initial.uniqueEffects ?? [],
+  });
   const [busy, setBusy] = useState(false);
   const [iconBusy, setIconBusy] = useState(false);
 
@@ -184,7 +214,13 @@ function HeroForm({
   async function save() {
     setBusy(true);
     try {
-      const next = await saveHero({ data: { ...form, icon: form.icon ?? "" } });
+      const next = await saveHero({
+        data: {
+          ...form,
+          icon: form.icon ?? "",
+          uniqueEffects: (form.uniqueEffects ?? []).filter((u) => u.name.trim()),
+        },
+      });
       applyCatalog(next);
       toast("Unit saved");
       onSaved();
@@ -302,11 +338,114 @@ function HeroForm({
         }} />
       </div>
       <div className="mt-4">
+        <Label>Normal effects</Label>
+        <p className="mt-1 text-xs text-muted-foreground">
+          In-game Skill Effect filters. Buffs, debuffs, and unique effects come later.
+        </p>
+        <ChipSet
+          values={EFFECT_IDS}
+          selected={form.effects ?? []}
+          labels={EFFECT_LABEL}
+          onToggle={(value) => {
+            const effect = value as NormalEffect;
+            const on = (form.effects ?? []).includes(effect);
+            patch({
+              effects: on
+                ? (form.effects ?? []).filter((e) => e !== effect)
+                : [...(form.effects ?? []), effect],
+            });
+          }}
+        />
+      </div>
+      <div className="mt-4">
         <Label>Tags</Label>
         <ChipSet values={TAG_IDS} selected={form.tags} onToggle={(tag) => {
           const on = form.tags.includes(tag as Hero["tags"][number]);
           patch({ tags: on ? form.tags.filter((t) => t !== tag) : [...form.tags, tag as Hero["tags"][number]] });
         }} />
+      </div>
+      <div className="mt-4">
+        <Field label="Buffs">
+          <Input
+            value={(form.buffs ?? []).join(", ")}
+            placeholder="Increase Speed, Immunity"
+            onChange={(e) =>
+              patch({
+                buffs: e.target.value
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              })
+            }
+          />
+        </Field>
+        <p className="mt-1 text-xs text-muted-foreground">Comma-separated. In-game buff names.</p>
+      </div>
+      <div className="mt-4">
+        <Field label="Debuffs">
+          <Input
+            value={(form.debuffs ?? []).join(", ")}
+            placeholder="Decrease Defense, Seal, Cannot Buff"
+            onChange={(e) =>
+              patch({
+                debuffs: e.target.value
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              })
+            }
+          />
+        </Field>
+        <p className="mt-1 text-xs text-muted-foreground">Comma-separated. In-game debuff names.</p>
+      </div>
+      <div className="mt-4">
+        <Label>Unique effects</Label>
+        <p className="mt-1 text-xs text-muted-foreground">Named kit effects that are not on the normal list.</p>
+        <div className="mt-2 flex flex-col gap-3">
+          {(form.uniqueEffects ?? []).map((item, index) => (
+            <div key={index} className="rounded-xl bg-secondary/60 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <Input
+                  value={item.name}
+                  placeholder="Name"
+                  onChange={(e) => {
+                    const next = [...(form.uniqueEffects ?? [])];
+                    next[index] = { ...item, name: e.target.value };
+                    patch({ uniqueEffects: next });
+                  }}
+                />
+                <button
+                  type="button"
+                  className="h-11 shrink-0 px-2 text-sm text-muted-foreground hover:text-foreground"
+                  onClick={() =>
+                    patch({ uniqueEffects: (form.uniqueEffects ?? []).filter((_, i) => i !== index) })
+                  }
+                >
+                  Remove
+                </button>
+              </div>
+              <Textarea
+                className="mt-2"
+                value={item.text}
+                placeholder="What it does"
+                onChange={(e) => {
+                  const next = [...(form.uniqueEffects ?? [])];
+                  next[index] = { ...item, text: e.target.value };
+                  patch({ uniqueEffects: next });
+                }}
+              />
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() =>
+              patch({ uniqueEffects: [...(form.uniqueEffects ?? []), { name: "", text: "" }] })
+            }
+          >
+            Add unique
+          </Button>
+        </div>
       </div>
       <div className="mt-4">
         <Field label="Kit note">

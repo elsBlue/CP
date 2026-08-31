@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { HEROES, SAMPLE_ROSTER } from "./heroes";
+import { heroEffects } from "./effects";
 import { isOwnerIdentity } from "./owner";
 import { DEFAULT_VP } from "./ranks";
 import { PRESET_DEFENSES, RECIPES } from "./recipes";
@@ -16,6 +17,7 @@ import type {
   Recipe,
   RosterEntry,
   SlotNeed,
+  UniqueEffect,
 } from "./types";
 
 export class ForbiddenError extends Error {
@@ -42,6 +44,20 @@ function asStringList(value: unknown): string[] {
   return parseJson<string[]>(value, []).filter((x) => typeof x === "string");
 }
 
+function asUniqueEffects(value: unknown): UniqueEffect[] {
+  const raw = parseJson<unknown[]>(value, []);
+  const out: UniqueEffect[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Record<string, unknown>;
+    const name = String(rec.name ?? "").trim();
+    const text = String(rec.text ?? "").trim();
+    if (!name) continue;
+    out.push({ name, text });
+  }
+  return out;
+}
+
 function heroFromRow(row: Record<string, unknown>): Hero {
   return {
     id: String(row.id),
@@ -52,6 +68,10 @@ function heroFromRow(row: Record<string, unknown>): Hero {
     tier: row.tier as Hero["tier"],
     roles: asStringList(row.roles) as Hero["roles"],
     tags: asStringList(row.tags) as Hero["tags"],
+    effects: asStringList(row.effects) as Hero["effects"],
+    buffs: asStringList(row.buffs),
+    debuffs: asStringList(row.debuffs),
+    uniqueEffects: asUniqueEffects(row.unique_effects),
     kit: String(row.kit ?? ""),
     defense: Number(row.defense ?? 5),
     offense: Number(row.offense ?? 5),
@@ -116,13 +136,44 @@ async function ensureCatalog() {
   for (let i = 0; i < HEROES.length; i++) {
     const h = HEROES[i]!;
     await sql`
-      insert into heroes (id, name, short, element, class, tier, roles, tags, kit, defense, offense, icon, sort_order)
+      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order)
       values (
         ${h.id}, ${h.name}, ${h.short}, ${h.element}, ${h.class}, ${h.tier},
         ${JSON.stringify(h.roles)}::jsonb, ${JSON.stringify(h.tags)}::jsonb,
+        ${JSON.stringify(heroEffects(h))}::jsonb,
+        ${JSON.stringify(h.buffs ?? [])}::jsonb,
+        ${JSON.stringify(h.debuffs ?? [])}::jsonb,
+        ${JSON.stringify(h.uniqueEffects ?? [])}::jsonb,
         ${h.kit}, ${h.defense}, ${h.offense}, ${h.icon ?? ""}, ${i}
       )
       on conflict (id) do nothing
+    `;
+  }
+  for (const h of HEROES) {
+    const effects = heroEffects(h);
+    if (effects.length === 0) continue;
+    await sql`
+      update heroes
+      set effects = ${JSON.stringify(effects)}::jsonb
+      where id = ${h.id} and (effects is null or effects = '[]'::jsonb)
+    `;
+  }
+  const detailed = ["lisette", "new-moon-luna"];
+  for (const id of detailed) {
+    const hero = HEROES.find((h) => h.id === id);
+    if (!hero) continue;
+    await sql`
+      update heroes set
+        roles = ${JSON.stringify(hero.roles)}::jsonb,
+        tags = ${JSON.stringify(hero.tags)}::jsonb,
+        effects = ${JSON.stringify(heroEffects(hero))}::jsonb,
+        buffs = ${JSON.stringify(hero.buffs ?? [])}::jsonb,
+        debuffs = ${JSON.stringify(hero.debuffs ?? [])}::jsonb,
+        unique_effects = ${JSON.stringify(hero.uniqueEffects ?? [])}::jsonb,
+        kit = ${hero.kit},
+        defense = ${hero.defense},
+        offense = ${hero.offense}
+      where id = ${hero.id}
     `;
   }
   if (seeded) return;
@@ -426,7 +477,20 @@ const heroSchema = z.object({
   tier: z.enum(["SS", "S", "A", "B"]),
   roles: z.array(z.string()).max(12),
   tags: z.array(z.string()).max(20),
-  kit: z.string().max(500),
+  effects: z.array(z.string()).max(30).optional().default([]),
+  buffs: z.array(z.string().max(48)).max(20).optional().default([]),
+  debuffs: z.array(z.string().max(48)).max(20).optional().default([]),
+  uniqueEffects: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(80),
+        text: z.string().max(400),
+      }),
+    )
+    .max(12)
+    .optional()
+    .default([]),
+  kit: z.string().max(800),
   defense: z.number().int().min(0).max(10),
   offense: z.number().int().min(0).max(10),
   icon: z
@@ -447,10 +511,14 @@ export const saveHero = createServerFn({ method: "POST" })
     await requireAdmin(context.userId);
     const sql = await getSql();
     await sql`
-      insert into heroes (id, name, short, element, class, tier, roles, tags, kit, defense, offense, icon, sort_order)
+      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order)
       values (
         ${data.id}, ${data.name}, ${data.short}, ${data.element}, ${data.class}, ${data.tier},
         ${JSON.stringify(data.roles)}::jsonb, ${JSON.stringify(data.tags)}::jsonb,
+        ${JSON.stringify(data.effects ?? [])}::jsonb,
+        ${JSON.stringify(data.buffs ?? [])}::jsonb,
+        ${JSON.stringify(data.debuffs ?? [])}::jsonb,
+        ${JSON.stringify(data.uniqueEffects ?? [])}::jsonb,
         ${data.kit}, ${data.defense}, ${data.offense}, ${data.icon ?? ""}, 0
       )
       on conflict (id) do update set
@@ -461,6 +529,10 @@ export const saveHero = createServerFn({ method: "POST" })
         tier = excluded.tier,
         roles = excluded.roles,
         tags = excluded.tags,
+        effects = excluded.effects,
+        buffs = excluded.buffs,
+        debuffs = excluded.debuffs,
+        unique_effects = excluded.unique_effects,
         kit = excluded.kit,
         defense = excluded.defense,
         offense = excluded.offense,

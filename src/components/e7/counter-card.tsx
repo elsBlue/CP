@@ -58,6 +58,11 @@ export function CounterCard({
                 No {m}
               </Badge>
             ))}
+            {team.gaps.map((g) => (
+              <Badge key={g} variant="loss">
+                No {g}
+              </Badge>
+            ))}
             {record && record.n > 0 ? (
               <Badge variant={rate !== null && rate >= 50 ? "win" : "outline"}>
                 {record.wins}W {record.n - record.wins}L

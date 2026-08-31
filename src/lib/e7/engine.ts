@@ -1,6 +1,8 @@
 import { allHeroes, allRecipes, getHero } from "./catalog";
+import { heroEffects } from "./effects";
 import { TIER_ORDER } from "./heroes";
 import { ARCHETYPE_META } from "./recipes";
+import { unansweredThreats, wallThreats } from "./threats";
 import type {
   ArchetypeId,
   CounterTeam,
@@ -24,6 +26,12 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
 
   const tags = unique(heroes.flatMap((h) => h.tags));
   const roles = unique(heroes.flatMap((h) => h.roles));
+  const effects = unique(heroes.flatMap((h) => heroEffects(h)));
+  const buffs = unique(heroes.flatMap((h) => h.buffs ?? []));
+  const debuffs = unique(heroes.flatMap((h) => h.debuffs ?? []));
+  const uniqueEffects = heroes.flatMap((h) =>
+    (h.uniqueEffects ?? []).map((u) => ({ ...u, heroId: h.id })),
+  );
   const idSet = new Set(ids);
 
   const scores: Record<ArchetypeId, number> = {
@@ -61,6 +69,9 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
   if (idSet.has("belian") || idSet.has("politis") || idSet.has("sea-phantom-politis")) {
     scores["immunity-soul"] += 2;
   }
+  if (idSet.has("lisette") || uniqueEffects.some((u) => /fragment of life|time reversal/i.test(u.name))) {
+    scores["revive-wall"] += 3;
+  }
   if (roles.includes("bruiser") && roles.includes("tank")) scores["bruiser-mix"] += 2;
 
   const archetype = (Object.entries(scores) as [ArchetypeId, number][]).sort(
@@ -75,14 +86,8 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
     }))
     .sort((a, b) => b.severity - a.severity);
 
-  const notes: string[] = [];
-  if (roles.includes("speedcap")) notes.push("Speed contest is off the table.");
-  if (roles.includes("revive")) notes.push("Kills can reset. Bring anti-revive or accept a two-cycle fight.");
-  if (roles.includes("soulblock")) notes.push("Soulburn cleave will brick. Play without souls.");
-  if (tags.includes("evade")) notes.push("Single-target S3s will miss. Prefer AoE or dual attacks.");
-  if (tags.includes("injury")) notes.push("They want the long fight. Do not race raw HP.");
-  if (tags.includes("immunity") && !roles.includes("strip")) notes.push("Buffs stick. A stripper belongs in the draft.");
-  if (roles.includes("opener") && roles.includes("cleave")) notes.push("They want turn one. Cap, miss, or outspeed.");
+  const watch = wallThreats(heroes);
+  const notes = watch.map((t) => t.note);
 
   const meta = ARCHETYPE_META[archetype];
   return {
@@ -91,8 +96,13 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
     headline: meta.blurb,
     threats,
     notes,
+    watch,
     tags,
     roles,
+    effects,
+    buffs,
+    debuffs,
+    uniqueEffects,
   };
 }
 
@@ -204,12 +214,17 @@ export function recommendCounters(
     const filled = fillRecipe(recipe, usable, enemyIds);
     if (filled.heroIds.length < 3) continue;
     const filledHeroes = heroesOf(filled.heroIds);
+    const gaps = unansweredThreats(read.watch, filledHeroes);
     const tierAvg =
       filledHeroes.reduce((s, h) => s + TIER_ORDER[h.tier], 0) / Math.max(1, filledHeroes.length);
     const score = Math.round(
       Math.min(
         99,
-        vsBonus + filled.coverage * 55 + tierAvg * 6 + (isTheory ? -8 : 4),
+        vsBonus +
+          filled.coverage * 55 +
+          tierAvg * 6 +
+          (isTheory ? -8 : 4) -
+          gaps.length * 6,
       ),
     );
     results.push({
@@ -222,6 +237,7 @@ export function recommendCounters(
       setup: recipe.setup,
       pitfalls: recipe.pitfalls,
       missing: filled.missing,
+      gaps,
       theorycraft: isTheory,
       why: whyFor(recipe, read, filledHeroes),
     });
@@ -244,7 +260,7 @@ export function searchHeroes(query: string, list: Hero[] = allHeroes()): Hero[] 
   const q = query.trim().toLowerCase();
   if (!q) return list;
   return list.filter((h) => {
-    const hay = `${h.name} ${h.short} ${h.element} ${h.class} ${h.roles.join(" ")} ${h.tags.join(" ")}`.toLowerCase();
+    const hay = `${h.name} ${h.short} ${h.element} ${h.class} ${h.roles.join(" ")} ${h.tags.join(" ")} ${(h.effects ?? []).join(" ")}`.toLowerCase();
     return hay.includes(q) || h.name.toLowerCase().split(" ").some((w) => w.startsWith(q));
   });
 }
