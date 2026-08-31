@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { isOwnerIdentity } from "@/lib/e7/owner";
-import { rankForVp } from "@/lib/e7/ranks";
+import { divisionForVp } from "@/lib/e7/ranks";
 import { useArenaStore } from "@/lib/e7/store";
 import { cn } from "@/lib/utils";
 import { Brand } from "./brand";
@@ -23,7 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const email = useArenaStore((s) => s.email);
   const isAdmin =
     role === "admin" || isOwnerIdentity(user?.primaryEmail, user?.displayName, email);
-  const rank = rankForVp(vp);
+  const rank = divisionForVp(vp);
   const items = isAdmin ? [...NAV, { to: "/admin", label: "Admin", icon: Settings2 }] : NAV;
 
   return (

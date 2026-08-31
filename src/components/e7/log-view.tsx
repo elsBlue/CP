@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ARCHETYPE_META } from "@/lib/e7/recipes";
-import { nextRank, rankForVp, rankProgress } from "@/lib/e7/ranks";
+import { nextDivision, divisionForVp, rankProgress } from "@/lib/e7/ranks";
 import { groupByArchetype, groupByRecipe, winRate } from "@/lib/e7/stats";
 import { useArenaStore } from "@/lib/e7/store";
 
@@ -26,8 +26,8 @@ export function LogView() {
   const removeMatch = useArenaStore((s) => s.removeMatch);
   const clearMatches = useArenaStore((s) => s.clearMatches);
 
-  const rank = rankForVp(vp);
-  const nxt = nextRank(vp);
+  const rank = divisionForVp(vp);
+  const nxt = nextDivision(vp);
   const progress = rankProgress(vp);
   const wins = matches.filter((m) => m.won).length;
   const rate = winRate(wins, matches.length);
@@ -68,14 +68,16 @@ export function LogView() {
             <p className="font-mono text-4xl tabular-nums leading-none">{vp.toLocaleString()}</p>
             <Progress value={Math.round(progress * 100)} />
             <p className="text-sm text-muted-foreground">
-              {nxt ? `${nxt.minVp - vp} to ${nxt.label}` : "Top band"}
+              {nxt
+                ? `${nxt.minVp - vp} to ${nxt.label}${nxt.placement ? ` · ${nxt.placement}` : ""}`
+                : rank.placement ?? "Top of the board"}
             </p>
             <div>
               <Label htmlFor="vp">Victory points</Label>
               <Input
                 id="vp"
                 type="number"
-                min={800}
+                min={0}
                 max={6000}
                 value={vp}
                 onChange={(e) => setVp(Number(e.target.value))}

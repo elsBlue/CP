@@ -176,8 +176,8 @@ export type RankId =
   | "master"
   | "challenger"
   | "champion"
-  | "legend"
-  | "emperor";
+  | "emperor"
+  | "legend";
 
 export type MatchLog = {
   id: string;
