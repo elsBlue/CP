@@ -1,9 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
 import { HeroPortrait } from "@/components/hero-portrait";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +22,7 @@ import {
   listAdminLog,
   listMembers,
   saveHero,
+  saveHeroIcon,
   savePreset,
   saveRecipe,
   setIngameName,
@@ -46,6 +54,16 @@ import {
 import { cn } from "@/lib/utils";
 
 type Tab = "units" | "strategies" | "walls" | "members" | "log" | "stats";
+
+function formatInGameDate(iso?: string): string {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[m - 1];
+  if (!month) return iso;
+  return `${d} ${month} ${y}`;
+}
 
 function slugify(value: string) {
   return value
@@ -81,7 +99,7 @@ export function AdminView() {
             Then Unique / Buffs / Debuffs on those same units. That is Scout info, not a new wall type
             — except Harsetti, Belian, and Lisette revive.
           </li>
-          <li>Add an icon if you have one.</li>
+          <li>Tap a unit portrait to set its icon. That save does not touch kit data.</li>
           <li>
             Hold new recipes until about eight walls are tagged that way. Then one strategy per wall
             type, slots from units people actually build.
@@ -126,6 +144,7 @@ function HeroAdmin() {
   const heroes = useCatalog((s) => s.heroes);
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Hero | null>(null);
+  const [iconHero, setIconHero] = useState<Hero | null>(null);
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
     const rows = q
@@ -141,7 +160,7 @@ function HeroAdmin() {
       <div className="flex items-end justify-between gap-3">
         <p className="font-mono text-sm tabular-nums text-muted-foreground">
           {query ? `${list.length} of ${heroes.length}` : `${heroes.length} units`}
-          {` · ${heroes.filter((h) => h.verified).length} verified`}
+          {` · ${heroes.filter((h) => h.verified).length} in-game verified`}
         </p>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -179,19 +198,30 @@ function HeroAdmin() {
           onSaved={() => setEditing(null)}
         />
       ) : null}
+      <IconDialog hero={iconHero} onClose={() => setIconHero(null)} />
       <ul className="flex flex-col gap-1">
         {list.map((hero) => (
           <li key={hero.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
             <div className="flex min-w-0 items-center gap-3">
-              <HeroPortrait hero={hero} size="sm" />
+              <button
+                type="button"
+                onClick={() => setIconHero(hero)}
+                className="shrink-0 rounded-md"
+                aria-label={`Edit icon · ${hero.name}`}
+              >
+                <HeroPortrait hero={hero} size="sm" />
+              </button>
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 text-sm font-medium">
                   <span className="truncate">{hero.name}</span>
                   {hero.verified ? (
-                    <Star className="size-3.5 shrink-0 fill-current" strokeWidth={1.5} aria-label="Verified kit" />
+                    <Star className="size-3.5 shrink-0 fill-current" strokeWidth={1.5} aria-label="In-game verified" />
                   ) : null}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
+                  {hero.verified
+                    ? `In-game verified · ${formatInGameDate(hero.checkedAt)} · `
+                    : ""}
                   {hero.short} · {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]} · {hero.tier}
                 </p>
               </div>
@@ -203,6 +233,116 @@ function HeroAdmin() {
         ))}
       </ul>
     </div>
+  );
+}
+
+function IconDialog({ hero, onClose }: { hero: Hero | null; onClose: () => void }) {
+  const [icon, setIcon] = useState(hero?.icon ?? "");
+  const [fileName, setFileName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [iconBusy, setIconBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setIcon(hero?.icon ?? "");
+    setFileName("");
+  }, [hero]);
+
+  async function save() {
+    if (!hero) return;
+    setBusy(true);
+    try {
+      const next = await saveHeroIcon({ data: { id: hero.id, icon } });
+      applyCatalog(next);
+      toast(icon ? "Icon saved" : "Icon removed");
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save icon");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const preview: Hero | null = hero ? { ...hero, icon } : null;
+
+  return (
+    <Dialog open={Boolean(hero)} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Icon · {hero?.name ?? ""}</DialogTitle>
+          <DialogDescription>
+            This save only changes the icon. Kit, roles, and in-game verified stay as they are.
+          </DialogDescription>
+        </DialogHeader>
+        {preview ? (
+          <div className="flex items-center gap-3">
+            <HeroPortrait hero={preview} size="lg" />
+            <p className="text-xs text-muted-foreground">Square crop, face in the middle. 256×256 is enough.</p>
+          </div>
+        ) : null}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          disabled={busy || iconBusy || !hero}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            setIconBusy(true);
+            void fileToHeroIcon(file)
+              .then((next) => {
+                setIcon(next);
+                setFileName(file.name);
+              })
+              .catch((err) => toast.error(err instanceof Error ? err.message : "Could not read image"))
+              .finally(() => setIconBusy(false));
+          }}
+        />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy || iconBusy || !hero}
+              onClick={() => fileRef.current?.click()}
+            >
+              {iconBusy ? "Reading…" : "Upload image"}
+            </Button>
+            {fileName ? (
+              <span className="min-w-0 truncate text-xs text-muted-foreground">{fileName}</span>
+            ) : null}
+          </div>
+          <Input
+            value={icon.startsWith("data:") ? "" : icon}
+            placeholder="Or paste an image URL"
+            disabled={busy || !hero}
+            onChange={(e) => {
+              setIcon(e.target.value);
+              setFileName("");
+            }}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => void save()} disabled={busy || iconBusy || !hero}>
+            Save icon
+          </Button>
+          {icon ? (
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => {
+                setIcon("");
+                setFileName("");
+              }}
+            >
+              Remove
+            </Button>
+          ) : null}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -225,7 +365,6 @@ function HeroForm({
     uniqueEffects: initial.uniqueEffects ?? [],
   });
   const [busy, setBusy] = useState(false);
-  const [iconBusy, setIconBusy] = useState(false);
 
   function patch(next: Partial<Hero>) {
     setForm((cur) => {
@@ -242,7 +381,7 @@ function HeroForm({
       const next = await saveHero({
         data: {
           ...form,
-          icon: form.icon ?? "",
+          icon: "",
           uniqueEffects: (form.uniqueEffects ?? []).filter((u) => u.name.trim()),
         },
       });
@@ -279,45 +418,11 @@ function HeroForm({
           Close
         </button>
       </div>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="mb-4 flex items-center gap-3">
         <HeroPortrait hero={{ ...form, name: form.name || "New", short: form.short || "New" }} size="lg" />
-        <div className="min-w-0 flex-1">
-          <Label htmlFor="hero-icon">Icon</Label>
-          <p className="mt-1 text-xs text-muted-foreground">Upload a square image, or paste an image URL.</p>
-          <div className="mt-2 flex flex-col gap-2">
-            <Input
-              id="hero-icon-file"
-              type="file"
-              accept="image/*"
-              disabled={busy || iconBusy}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (!file) return;
-                setIconBusy(true);
-                void fileToHeroIcon(file)
-                  .then((icon) => patch({ icon }))
-                  .catch((err) => toast.error(err instanceof Error ? err.message : "Could not read image"))
-                  .finally(() => setIconBusy(false));
-              }}
-            />
-            <Input
-              id="hero-icon"
-              value={form.icon?.startsWith("data:") ? "" : (form.icon ?? "")}
-              placeholder="https://…"
-              onChange={(e) => patch({ icon: e.target.value })}
-            />
-            {form.icon ? (
-              <button
-                type="button"
-                className="h-11 self-start px-3 text-sm text-muted-foreground hover:text-foreground"
-                onClick={() => patch({ icon: "" })}
-              >
-                Remove icon
-              </button>
-            ) : null}
-          </div>
-        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Icon is separate. Close this, then tap the portrait on the list.
+        </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Name">
@@ -486,10 +591,11 @@ function HeroForm({
         <span>
           <span className="flex items-center gap-1.5 text-sm">
             <Star className={form.verified ? "size-3.5 fill-current" : "size-3.5"} strokeWidth={1.5} />
-            Verified kit
+            In-game verified
           </span>
           <span className="mt-0.5 block text-xs text-muted-foreground">
-            Roles, effects, buffs, debuffs, and unique checked against the game. Only Lisette and New Moon Luna start this way.
+            Kit is the same as the journal. Saving with this on stamps today
+            {form.verified && form.checkedAt ? ` (last: ${formatInGameDate(form.checkedAt)})` : ""}.
           </span>
         </span>
       </label>

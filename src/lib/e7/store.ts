@@ -44,7 +44,7 @@ const emptyState = {
   role: "member" as MemberRole,
   email: null as string | null,
   roster: {},
-  enemy: ["harsetti", "last-rider-krau", "belian", "dragon-bride-senya"],
+  enemy: emptySlots(),
   lastTeam: emptySlots(),
   vp: DEFAULT_VP,
   matches: [] as MatchLog[],

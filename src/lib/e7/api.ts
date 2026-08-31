@@ -62,6 +62,20 @@ function asUniqueEffects(value: unknown): UniqueEffect[] {
   return out;
 }
 
+function asCheckedAt(value: unknown): string | undefined {
+  if (!value) return undefined;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  const s = String(value);
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m?.[1];
+}
+
+function todayStamp(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function heroFromRow(row: Record<string, unknown>): Hero {
   return {
     id: String(row.id),
@@ -81,6 +95,7 @@ function heroFromRow(row: Record<string, unknown>): Hero {
     offense: Number(row.offense ?? 5),
     icon: String(row.icon ?? ""),
     verified: Boolean(row.verified),
+    checkedAt: asCheckedAt(row.checked_at),
   };
 }
 
@@ -129,7 +144,7 @@ function padFour(ids: string[]): string[] {
 }
 
 function defaultEnemy(): string[] {
-  return ["harsetti", "last-rider-krau", "belian", "dragon-bride-senya"];
+  return ["", "", "", ""];
 }
 
 function defaultRoster(): Record<string, RosterEntry> {
@@ -146,7 +161,7 @@ async function ensureCatalog() {
   for (let i = 0; i < HEROES.length; i++) {
     const h = HEROES[i]!;
     await sql`
-      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order, verified)
+      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order, verified, checked_at)
       values (
         ${h.id}, ${h.name}, ${h.short}, ${h.element}, ${h.class}, ${h.tier},
         ${JSON.stringify(h.roles)}::jsonb, ${JSON.stringify(h.tags)}::jsonb,
@@ -154,7 +169,8 @@ async function ensureCatalog() {
         ${JSON.stringify(h.buffs ?? [])}::jsonb,
         ${JSON.stringify(h.debuffs ?? [])}::jsonb,
         ${JSON.stringify(h.uniqueEffects ?? [])}::jsonb,
-        ${h.kit}, ${h.defense}, ${h.offense}, ${h.icon ?? ""}, ${i}, ${h.verified ?? false}
+        ${h.kit}, ${h.defense}, ${h.offense}, ${h.icon ?? ""}, ${i}, ${h.verified ?? false},
+        ${h.verified ? (h.checkedAt ?? todayStamp()) : null}
       )
       on conflict (id) do nothing
     `;
@@ -168,7 +184,41 @@ async function ensureCatalog() {
       where id = ${h.id} and (effects is null or effects = '[]'::jsonb)
     `;
   }
-  const detailed = ["lisette", "new-moon-luna"];
+  const detailed = [
+    "lisette",
+    "new-moon-luna",
+    "harsetti",
+    "belian",
+    "last-rider-krau",
+    "ruele-of-light",
+    "dragon-bride-senya",
+    "fallen-cecilia",
+    "boss-arunka",
+    "empyrean-ilynav",
+    "remnant-violet",
+    "setsuka",
+    "briar-witch-iseria",
+    "lady-of-the-scales",
+    "conqueror-lilias",
+    "rinak",
+    "frieren",
+    "genesis-ras",
+    "blood-moon-haste",
+    "diene",
+    "shepherd-diene",
+    "solitaria",
+    "angel-of-light-angelica",
+    "sea-phantom-politis",
+    "politis",
+    "mort",
+    "hecate",
+    "apocalypse-ravi",
+    "urban-shadow-choux",
+    "lone-wolf-peira",
+    "straze",
+    "navy-captain-landy",
+    "spirit-eye-celine",
+  ];
   for (const id of detailed) {
     const hero = HEROES.find((h) => h.id === id);
     if (!hero) continue;
@@ -183,23 +233,51 @@ async function ensureCatalog() {
         kit = ${hero.kit},
         defense = ${hero.defense},
         offense = ${hero.offense},
-        verified = ${hero.verified ?? false}
+        verified = ${hero.verified ?? false},
+        checked_at = ${hero.verified ? (hero.checkedAt ?? todayStamp()) : null}
       where id = ${hero.id}
     `;
   }
-  // Seed once. Never UPDATE existing recipes — admin and later generated rows stay put.
-  if (seeded) return;
+  // Seed once. Never overwrite admin / generated recipes (source != seed).
+  if (!seeded) {
+    for (let i = 0; i < RECIPES.length; i++) {
+      const r = RECIPES[i]!;
+      await sql`
+        insert into recipes (id, name, vs, summary, wincon, setup, pitfalls, slots, sort_order, source)
+        values (
+          ${r.id}, ${r.name},
+          ${JSON.stringify(r.vs)}::jsonb, ${r.summary}, ${r.wincon}, ${r.setup},
+          ${JSON.stringify(r.pitfalls)}::jsonb, ${JSON.stringify(r.slots)}::jsonb, ${i},
+          'seed'
+        )
+        on conflict (id) do nothing
+      `;
+    }
+    for (let i = 0; i < PRESET_DEFENSES.length; i++) {
+      const p = PRESET_DEFENSES[i]!;
+      await sql`
+        insert into presets (id, name, hero_ids, blurb, sort_order)
+        values (
+          ${p.id}, ${p.name}, ${JSON.stringify(p.heroIds)}::jsonb, ${p.blurb}, ${i}
+        )
+        on conflict (id) do nothing
+      `;
+    }
+    await sql`insert into app_meta (key, value) values ('catalog_seeded', '1') on conflict (key) do nothing`;
+  }
   for (let i = 0; i < RECIPES.length; i++) {
     const r = RECIPES[i]!;
     await sql`
-      insert into recipes (id, name, vs, summary, wincon, setup, pitfalls, slots, sort_order, source)
-      values (
-        ${r.id}, ${r.name},
-        ${JSON.stringify(r.vs)}::jsonb, ${r.summary}, ${r.wincon}, ${r.setup},
-        ${JSON.stringify(r.pitfalls)}::jsonb, ${JSON.stringify(r.slots)}::jsonb, ${i},
-        'seed'
-      )
-      on conflict (id) do nothing
+      update recipes set
+        name = ${r.name},
+        vs = ${JSON.stringify(r.vs)}::jsonb,
+        summary = ${r.summary},
+        wincon = ${r.wincon},
+        setup = ${r.setup},
+        pitfalls = ${JSON.stringify(r.pitfalls)}::jsonb,
+        slots = ${JSON.stringify(r.slots)}::jsonb,
+        sort_order = ${i}
+      where id = ${r.id} and source = 'seed'
     `;
   }
   for (let i = 0; i < PRESET_DEFENSES.length; i++) {
@@ -209,10 +287,14 @@ async function ensureCatalog() {
       values (
         ${p.id}, ${p.name}, ${JSON.stringify(p.heroIds)}::jsonb, ${p.blurb}, ${i}
       )
-      on conflict (id) do nothing
+      on conflict (id) do update set
+        name = excluded.name,
+        hero_ids = excluded.hero_ids,
+        blurb = excluded.blurb,
+        sort_order = excluded.sort_order
     `;
   }
-  await sql`insert into app_meta (key, value) values ('catalog_seeded', '1') on conflict (key) do nothing`;
+  await sql`delete from presets where id = 'cleave-line'`;
 }
 
 async function loadOwnerIds(): Promise<string[]> {
@@ -643,6 +725,7 @@ const heroSchema = z.object({
     .optional()
     .default(""),
   verified: z.boolean().optional().default(false),
+  checkedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export const saveHero = createServerFn({ method: "POST" })
@@ -654,8 +737,9 @@ export const saveHero = createServerFn({ method: "POST" })
     const prev = await sql<{ name: string; short: string; kit: string; icon: string }>`
       select name, short, kit, icon from heroes where id = ${data.id}
     `;
+    const checkedAt = data.verified ? todayStamp() : null;
     await sql`
-      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order, verified)
+      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order, verified, checked_at)
       values (
         ${data.id}, ${data.name}, ${data.short}, ${data.element}, ${data.class}, ${data.tier},
         ${JSON.stringify(data.roles)}::jsonb, ${JSON.stringify(data.tags)}::jsonb,
@@ -663,7 +747,8 @@ export const saveHero = createServerFn({ method: "POST" })
         ${JSON.stringify(data.buffs ?? [])}::jsonb,
         ${JSON.stringify(data.debuffs ?? [])}::jsonb,
         ${JSON.stringify(data.uniqueEffects ?? [])}::jsonb,
-        ${data.kit}, ${data.defense}, ${data.offense}, ${data.icon ?? ""}, 0, ${data.verified ?? false}
+        ${data.kit}, ${data.defense}, ${data.offense}, ${""}, 0, ${data.verified ?? false},
+        ${checkedAt}
       )
       on conflict (id) do update set
         name = excluded.name,
@@ -680,16 +765,38 @@ export const saveHero = createServerFn({ method: "POST" })
         kit = excluded.kit,
         defense = excluded.defense,
         offense = excluded.offense,
-        icon = excluded.icon,
-        verified = excluded.verified
+        verified = excluded.verified,
+        checked_at = excluded.checked_at
     `;
     const before = prev[0];
-    const action = !before
-      ? "unit.create"
-      : before.icon !== (data.icon ?? "") && before.name === data.name && before.short === data.short && before.kit === data.kit
-        ? "unit.icon"
-        : "unit.update";
+    const action = !before ? "unit.create" : "unit.update";
     await recordAdminEvent(context.userId, action, { id: data.id, name: data.short || data.name });
+    return loadCatalog();
+  });
+
+export const saveHeroIcon = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(
+    z.object({
+      id: z.string().min(1).max(64),
+      icon: z
+        .string()
+        .max(180000)
+        .refine(
+          (v) => v === "" || v.startsWith("https://") || v.startsWith("http://") || v.startsWith("data:image/"),
+          "Icon must be an image upload or URL",
+        ),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    await requireAdmin(context.userId);
+    const sql = await getSql();
+    const row = await sql<{ name: string; short: string }>`
+      select name, short from heroes where id = ${data.id}
+    `;
+    if (!row[0]) throw new Error("Unit not found");
+    await sql`update heroes set icon = ${data.icon} where id = ${data.id}`;
+    await recordAdminEvent(context.userId, "unit.icon", { id: data.id, name: row[0].short || row[0].name });
     return loadCatalog();
   });
 

@@ -27,9 +27,11 @@ export function ScoutView() {
   const presets = useCatalog((s) => s.presets);
   const recipes = useCatalog((s) => s.recipes);
   const heroes = useCatalog((s) => s.heroes);
+  const [wallsOpen, setWallsOpen] = useState(false);
 
   const filled = useMemo(() => enemy.filter((id) => id.length > 0), [enemy]);
   const built = builtIds(roster);
+  const builtVerified = built.filter((id) => getHero(id)?.verified).length;
   const pool = restrict ? built : null;
   const poolKey = pool ? pool.join("|") : "all";
   const enemyKey = enemy.join("|");
@@ -88,7 +90,13 @@ export function ScoutView() {
           </p>
           {read && meta ? (
             <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-              Counters on the right match this type from your built units. Won or Lost after the fight is what proves a recipe.
+              Counters on the right match this type from your built, in-game verified units. Won or Lost after the fight is what proves a recipe.
+            </p>
+          ) : null}
+          {read && read.unverifiedIds.length > 0 ? (
+            <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+              {read.unverifiedIds.length === 1 ? "One unit on this wall is" : `${read.unverifiedIds.length} units on this wall are`}{" "}
+              not in-game verified. We name the wall from the verified kits only.
             </p>
           ) : null}
           {read && read.watch.length > 0 ? (
@@ -111,13 +119,25 @@ export function ScoutView() {
               </p>
               <p className="text-sm text-muted-foreground">Four heroes on their defense</p>
             </div>
-            <button
-              type="button"
-              className="min-h-11 px-2 text-sm text-muted-foreground hover:text-foreground"
-              onClick={() => setEnemy([])}
-            >
-              Clear
-            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              {presets.length > 0 ? (
+                <button
+                  type="button"
+                  className="min-h-11 px-2 text-sm text-muted-foreground hover:text-foreground"
+                  onClick={() => setWallsOpen((v) => !v)}
+                  aria-expanded={wallsOpen}
+                >
+                  {wallsOpen ? "Close" : "Walls"}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="min-h-11 px-2 text-sm text-muted-foreground hover:text-foreground"
+                onClick={() => setEnemy([])}
+              >
+                Clear
+              </button>
+            </div>
           </div>
           <TeamSlots
             ids={enemy}
@@ -125,6 +145,35 @@ export function ScoutView() {
             pickerTitle="Enemy unit"
             labels={["Lead", "Two", "Three", "Four"]}
           />
+          {wallsOpen && presets.length > 0 ? (
+            <ul className="flex flex-col gap-1">
+              {presets.map((p) => {
+                const on = enemy.join() === p.heroIds.join();
+                return (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEnemy(p.heroIds);
+                        setWallsOpen(false);
+                      }}
+                      className={cn(
+                        "w-full rounded-xl px-4 py-3 text-left shadow-[var(--shadow-border)]",
+                        on ? "bg-primary text-primary-foreground" : "bg-card",
+                      )}
+                    >
+                      <p className="text-sm font-medium">{p.name}</p>
+                      {p.blurb ? (
+                        <p className={cn("mt-0.5 text-xs", on ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                          {p.blurb}
+                        </p>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
           {read &&
           (read.effects.length > 0 ||
             read.buffs.length > 0 ||
@@ -212,34 +261,14 @@ export function ScoutView() {
               ) : null}
             </div>
           ) : null}
-          {presets.length > 0 ? (
-            <p className="text-sm text-muted-foreground">Example walls</p>
-          ) : null}
-          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pt-1">
-            {presets.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setEnemy(p.heroIds)}
-                className={cn(
-                  "h-11 shrink-0 rounded-full px-4 text-sm shadow-[var(--shadow-border)] transition-colors duration-150",
-                  enemy.join() === p.heroIds.join()
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {p.name}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
           <div className="min-w-0">
             <p className="text-sm font-medium">Only built units</p>
             <p className="text-sm text-muted-foreground">
-              On: fill counters from {built.length} built{" "}
-              {built.length === 1 ? "hero" : "heroes"}. Off: use the full catalog.
+              On: fill from {builtVerified} built, in-game verified{" "}
+              {builtVerified === 1 ? "hero" : "heroes"}. Off: verified catalog (theory). Unverified kits stay out.
             </p>
           </div>
           <Switch checked={restrict} onCheckedChange={setRestrict} />
@@ -261,7 +290,7 @@ export function ScoutView() {
             <CardContent className="p-5 text-sm leading-relaxed text-muted-foreground">
               {filled.length < 4
                 ? `Add ${4 - filled.length} more ${4 - filled.length === 1 ? "hero" : "heroes"} to the defense. Counters appear when all four slots are filled.`
-                : "No matching recipe for this wall yet. Try another defense, or turn off Only built units."}
+                : "No matching recipe for this wall yet. Try another defense, or turn off Only built units. Counters only use in-game verified kits."}
             </CardContent>
           </Card>
         ) : (

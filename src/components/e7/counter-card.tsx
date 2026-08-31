@@ -74,6 +74,15 @@ export function CounterCard({
       {selected ? (
         <CardContent className="flex flex-col gap-4 border-t border-border px-4 pt-4 pb-5 sm:px-5">
           <Block label="Wincon" text={team.wincon} />
+          {team.why.length > 0 ? (
+            <ul className="flex flex-col gap-1">
+              {team.why.map((line) => (
+                <li key={line} className="text-sm leading-relaxed text-muted-foreground">
+                  {line}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {result ? (
             <div className="flex flex-col gap-3">
               <div className="flex items-baseline justify-between gap-2">

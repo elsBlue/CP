@@ -227,6 +227,7 @@ export type Hero = {
   offense: number;
   icon?: string;
   verified?: boolean;
+  checkedAt?: string;
 };
 
 export type SlotNeed = {
@@ -273,6 +274,7 @@ export type DefenseRead = {
   buffs: string[];
   debuffs: string[];
   uniqueEffects: WallUnique[];
+  unverifiedIds: string[];
 };
 
 export type CounterTeam = {

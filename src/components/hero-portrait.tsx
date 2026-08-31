@@ -67,7 +67,7 @@ export function HeroPortrait({
   return (
     <div
       className={cn(
-        "relative flex items-center justify-center overflow-hidden rounded-lg bg-linear-to-b to-transparent",
+        "relative flex aspect-square shrink-0 items-center justify-center overflow-hidden rounded-md bg-secondary bg-linear-to-b to-transparent",
         dim,
         WASH[hero.element],
         RING_CLASS[hero.element],
@@ -77,7 +77,7 @@ export function HeroPortrait({
       title={`${hero.name} · ${ELEMENT_LABEL[hero.element]} ${CLASS_LABEL[hero.class]}`}
     >
       {hero.icon ? (
-        <img src={hero.icon} alt="" className="size-full object-cover" />
+        <img src={hero.icon} alt="" className="size-full object-cover object-center" />
       ) : (
         <>
           <span
@@ -106,7 +106,7 @@ export function EmptyPortrait({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-lg bg-secondary text-muted-foreground shadow-[var(--shadow-border)]",
+        "flex aspect-square shrink-0 items-center justify-center rounded-md bg-secondary text-muted-foreground shadow-[var(--shadow-border)]",
         dim,
       )}
     >
