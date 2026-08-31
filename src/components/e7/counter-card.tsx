@@ -72,8 +72,8 @@ export function CounterCard({
           {result ? (
             <div className="flex flex-col gap-3">
               <div className="flex items-baseline justify-between gap-2">
-                <Label htmlFor="match-note">Result</Label>
-                <span className="text-xs text-muted-foreground">Saved to your account</span>
+                <Label htmlFor="match-note">After the fight</Label>
+                <span className="text-sm text-muted-foreground">Saved to your account</span>
               </div>
               <Input
                 id="match-note"

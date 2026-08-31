@@ -32,10 +32,11 @@ export function RosterView() {
           Roster
         </p>
         <h1 className="font-display text-3xl leading-[1.1] tracking-tight sm:text-4xl">
-          Built units
+          Your roster
         </h1>
         <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
-          Scout fills strategies from this list. Saved to your account.
+          Tap a hero to mark them as built — geared and ready to use. Scout fills
+          counters from this list.
         </p>
       </header>
 
@@ -81,6 +82,7 @@ export function RosterView() {
               <button
                 type="button"
                 onClick={() => toggleBuilt(hero.id)}
+                aria-pressed={builtOn}
                 className="grid min-h-14 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl bg-card px-3 py-2.5 text-left shadow-[var(--shadow-border)]"
               >
                 <HeroPortrait hero={hero} size="sm" dimmed={!builtOn} />
@@ -92,13 +94,13 @@ export function RosterView() {
                 </span>
                 <span
                   className={cn(
-                    "inline-flex h-11 min-w-16 items-center justify-center rounded-full px-3 text-xs font-medium tracking-wide uppercase",
+                    "inline-flex h-11 min-w-24 items-center justify-center rounded-full px-3 text-xs font-medium tracking-wide uppercase",
                     builtOn
                       ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-muted-foreground",
                   )}
                 >
-                  {builtOn ? "Built" : "Off"}
+                  {builtOn ? "Built" : "Not built"}
                 </span>
               </button>
             </li>

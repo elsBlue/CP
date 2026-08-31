@@ -111,7 +111,7 @@ function defaultRoster(): Record<string, RosterEntry> {
 async function ensureCatalog() {
   const sql = await getSql();
   const meta = await sql<{ value: string }>`select value from app_meta where key = 'catalog_seeded'`;
-  if (meta[0]?.value === "1") return;
+  const seeded = meta[0]?.value === "1";
 
   for (let i = 0; i < HEROES.length; i++) {
     const h = HEROES[i]!;
@@ -125,6 +125,7 @@ async function ensureCatalog() {
       on conflict (id) do nothing
     `;
   }
+  if (seeded) return;
   for (let i = 0; i < RECIPES.length; i++) {
     const r = RECIPES[i]!;
     await sql`

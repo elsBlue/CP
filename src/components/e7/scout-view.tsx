@@ -28,7 +28,8 @@ export function ScoutView() {
   const heroes = useCatalog((s) => s.heroes);
 
   const filled = useMemo(() => enemy.filter((id) => id.length > 0), [enemy]);
-  const pool = restrict ? builtIds(roster) : null;
+  const built = builtIds(roster);
+  const pool = restrict ? built : null;
   const poolKey = pool ? pool.join("|") : "all";
   const enemyKey = enemy.join("|");
 
@@ -74,19 +75,24 @@ export function ScoutView() {
             Scout
           </p>
           <h1 className="font-display text-3xl leading-[1.1] tracking-tight sm:text-4xl">
-            {read && meta ? meta.title : "Enemy team"}
+            {read && meta ? meta.title : "Their defense"}
           </h1>
           <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
             {read && meta
               ? meta.blurb
-              : "Four enemies in. Matching strategies out. Log won or lost after the fight."}
+              : "Tap the four slots. Counters use heroes you marked as built on Roster."}
           </p>
+          {read && meta ? (
+            <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+              Pick a counter on the right. Won or Lost after the fight saves to your account.
+            </p>
+          ) : null}
         </header>
 
         <div className="rise-in-2 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
-              Enemy
+              Enemy defense
             </p>
             <button
               type="button"
@@ -123,8 +129,11 @@ export function ScoutView() {
 
         <div className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
           <div className="min-w-0">
-            <p className="text-sm font-medium">Use built roster</p>
-            <p className="text-xs text-muted-foreground">Off shows the full catalog.</p>
+            <p className="text-sm font-medium">Only built units</p>
+            <p className="text-sm text-muted-foreground">
+              On: fill counters from {built.length} built hero{built.length === 1 ? "" : "s"}.
+              Off: use the full catalog.
+            </p>
           </div>
           <Switch checked={restrict} onCheckedChange={setRestrict} />
         </div>
@@ -132,16 +141,20 @@ export function ScoutView() {
 
       <div className="flex flex-col gap-4 lg:sticky lg:top-20">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-display text-2xl tracking-tight">Strategies</h2>
+          <h2 className="font-display text-2xl tracking-tight">Counters</h2>
           {counters.length > 0 ? (
             <p className="text-sm text-muted-foreground">{counters.length} matching</p>
-          ) : null}
+          ) : (
+            <p className="text-sm text-muted-foreground">{filled.length} of 4</p>
+          )}
         </div>
 
         {counters.length === 0 ? (
           <Card>
             <CardContent className="p-5 text-sm leading-relaxed text-muted-foreground">
-              Four units first. Strategies match this wall’s shape and fill from your built roster.
+              {filled.length < 4
+                ? `Add ${4 - filled.length} more ${4 - filled.length === 1 ? "hero" : "heroes"} to the defense. Counters appear when all four slots are filled.`
+                : "No matching recipe for this wall yet. Try another defense, or turn off Only built units."}
             </CardContent>
           </Card>
         ) : (
