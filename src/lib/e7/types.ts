@@ -226,6 +226,7 @@ export type Hero = {
   defense: number;
   offense: number;
   icon?: string;
+  verified?: boolean;
 };
 
 export type SlotNeed = {
@@ -236,6 +237,8 @@ export type SlotNeed = {
   avoidRoles?: Role[];
 };
 
+export type RecipeSource = "seed" | "admin" | "generated";
+
 export type Recipe = {
   id: string;
   name: string;
@@ -245,6 +248,9 @@ export type Recipe = {
   setup: string;
   pitfalls: string[];
   slots: [SlotNeed, SlotNeed, SlotNeed, SlotNeed];
+  createdBy?: string | null;
+  author?: string;
+  source?: RecipeSource;
 };
 
 export type DefenseRead = {
@@ -324,6 +330,30 @@ export type DefensePreset = {
 export type GuildMember = {
   userId: string;
   displayName: string | null;
+  ingameName: string | null;
   email: string | null;
   role: MemberRole;
+};
+
+export type AdminLogRow = {
+  id: string;
+  at: number;
+  actor: string;
+  summary: string;
+};
+
+export type RecipeStat = {
+  id: string;
+  name: string;
+  author: string;
+  source: RecipeSource;
+  wins: number;
+  losses: number;
+};
+
+export type WallStat = {
+  archetype: ArchetypeId;
+  title: string;
+  wins: number;
+  losses: number;
 };

@@ -1,5 +1,8 @@
 import type { ArchetypeId, DefensePreset, Recipe } from "./types";
 
+/** Built-in recipes. Seed inserts these once (`source = seed`) and never updates
+ * existing rows — admin-authored and generated strategies keep their own ids. */
+
 export const ARCHETYPE_META: Record<
   ArchetypeId,
   { title: string; blurb: string; color: "control" | "stall" | "cleave" | "bruiser" }

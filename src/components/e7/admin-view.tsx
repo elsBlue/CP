@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { Star } from "lucide-react";
 import { toast } from "sonner";
 import { HeroPortrait } from "@/components/hero-portrait";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,33 +11,41 @@ import {
   deleteHero,
   deletePreset,
   deleteRecipe,
+  getAnalytics,
+  listAdminLog,
   listMembers,
   saveHero,
   savePreset,
   saveRecipe,
+  setIngameName,
   setMemberRole,
 } from "@/lib/e7/api";
 import { useCatalog } from "@/lib/e7/catalog";
 import { CLASS_LABEL, ELEMENT_LABEL } from "@/lib/e7/heroes";
 import { fileToHeroIcon } from "@/lib/e7/icon";
+import { isOwnerIdentity } from "@/lib/e7/owner";
 import { ARCHETYPE_META } from "@/lib/e7/recipes";
 import { useArenaStore } from "@/lib/e7/store";
+import { useCurrentUser } from "@/lib/auth/use-current-user";
 import {
   ARCHETYPE_IDS,
   EFFECT_IDS,
   EFFECT_LABEL,
   ROLE_IDS,
   TAG_IDS,
+  type AdminLogRow,
   type DefensePreset,
   type GuildMember,
   type Hero,
   type NormalEffect,
   type Recipe,
+  type RecipeStat,
   type SlotNeed,
+  type WallStat,
 } from "@/lib/e7/types";
 import { cn } from "@/lib/utils";
 
-type Tab = "units" | "strategies" | "walls" | "members";
+type Tab = "units" | "strategies" | "walls" | "members" | "log" | "stats";
 
 function slugify(value: string) {
   return value
@@ -85,6 +95,8 @@ export function AdminView() {
             ["strategies", "Strategies"],
             ["walls", "Walls"],
             ["members", "Members"],
+            ["log", "Log"],
+            ["stats", "Stats"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -104,6 +116,8 @@ export function AdminView() {
       {tab === "strategies" ? <RecipeAdmin /> : null}
       {tab === "walls" ? <PresetAdmin /> : null}
       {tab === "members" ? <MemberAdmin /> : null}
+      {tab === "log" ? <ActivityLog /> : null}
+      {tab === "stats" ? <AnalyticsPanel /> : null}
     </div>
   );
 }
@@ -114,8 +128,12 @@ function HeroAdmin() {
   const [editing, setEditing] = useState<Hero | null>(null);
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return heroes;
-    return heroes.filter((h) => `${h.name} ${h.short} ${h.id}`.toLowerCase().includes(q));
+    const rows = q
+      ? heroes.filter((h) => `${h.name} ${h.short} ${h.id}`.toLowerCase().includes(q))
+      : heroes;
+    return [...rows].sort(
+      (a, b) => Number(Boolean(b.verified)) - Number(Boolean(a.verified)) || a.name.localeCompare(b.name),
+    );
   }, [heroes, query]);
 
   return (
@@ -123,6 +141,7 @@ function HeroAdmin() {
       <div className="flex items-end justify-between gap-3">
         <p className="font-mono text-sm tabular-nums text-muted-foreground">
           {query ? `${list.length} of ${heroes.length}` : `${heroes.length} units`}
+          {` · ${heroes.filter((h) => h.verified).length} verified`}
         </p>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -146,6 +165,7 @@ function HeroAdmin() {
               defense: 5,
               offense: 5,
               icon: "",
+              verified: false,
             })
           }
         >
@@ -165,7 +185,12 @@ function HeroAdmin() {
             <div className="flex min-w-0 items-center gap-3">
               <HeroPortrait hero={hero} size="sm" />
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{hero.name}</p>
+                <p className="flex items-center gap-1.5 text-sm font-medium">
+                  <span className="truncate">{hero.name}</span>
+                  {hero.verified ? (
+                    <Star className="size-3.5 shrink-0 fill-current" strokeWidth={1.5} aria-label="Verified kit" />
+                  ) : null}
+                </p>
                 <p className="truncate text-xs text-muted-foreground">
                   {hero.short} · {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]} · {hero.tier}
                 </p>
@@ -452,6 +477,22 @@ function HeroForm({
           <Textarea value={form.kit} onChange={(e) => patch({ kit: e.target.value })} />
         </Field>
       </div>
+      <label className="mt-4 flex items-start gap-3 rounded-xl bg-secondary/60 px-4 py-3">
+        <Checkbox
+          checked={Boolean(form.verified)}
+          onCheckedChange={(v) => patch({ verified: v === true })}
+          className="mt-0.5"
+        />
+        <span>
+          <span className="flex items-center gap-1.5 text-sm">
+            <Star className={form.verified ? "size-3.5 fill-current" : "size-3.5"} strokeWidth={1.5} />
+            Verified kit
+          </span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            Roles, effects, buffs, debuffs, and unique checked against the game. Only Lisette and New Moon Luna start this way.
+          </span>
+        </span>
+      </label>
       <div className="mt-4 flex flex-wrap gap-2">
         <Button onClick={() => void save()} disabled={busy || !form.id || !form.name}>
           Save
@@ -468,7 +509,9 @@ function HeroForm({
 
 function RecipeAdmin() {
   const recipes = useCatalog((s) => s.recipes);
+  const me = useCurrentUser();
   const [editing, setEditing] = useState<Recipe | null>(null);
+  const [filter, setFilter] = useState<"all" | "mine">("all");
   const blank: Recipe = {
     id: "",
     name: "",
@@ -484,24 +527,53 @@ function RecipeAdmin() {
       { label: "Four", prefer: [], roles: [], tags: [] },
     ],
   };
+  const list =
+    filter === "mine" && me?.id
+      ? recipes.filter((r) => r.createdBy === me.id)
+      : recipes;
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-1">
+          {(["all", "mine"] as const).map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setFilter(id)}
+              className={cn(
+                "h-11 rounded-full px-4 text-sm",
+                filter === id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+              )}
+            >
+              {id === "all" ? "All" : "Mine"}
+            </button>
+          ))}
+        </div>
         <Button onClick={() => setEditing(blank)}>Add strategy</Button>
       </div>
       {editing ? <RecipeForm initial={editing} onClose={() => setEditing(null)} onSaved={() => setEditing(null)} /> : null}
       <ul className="flex flex-col gap-1">
-        {recipes.map((recipe) => (
+        {list.map((recipe) => (
           <li key={recipe.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{recipe.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{recipe.vs.map((v) => ARCHETYPE_META[v]?.title ?? v).join(", ")}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {recipe.author || "Catalog"}
+                {recipe.vs.length > 0
+                  ? ` · ${recipe.vs.map((v) => ARCHETYPE_META[v]?.title ?? v).join(", ")}`
+                  : ""}
+              </p>
             </div>
             <Button size="sm" variant="secondary" onClick={() => setEditing(recipe)}>
               Edit
             </Button>
           </li>
         ))}
+        {list.length === 0 ? (
+          <li className="rounded-xl bg-card px-4 py-5 text-sm text-muted-foreground shadow-[var(--shadow-border)]">
+            {filter === "mine" ? "No strategies saved under your account yet." : "No strategies."}
+          </li>
+        ) : null}
       </ul>
     </div>
   );
@@ -791,6 +863,9 @@ function PresetForm({
 
 function MemberAdmin() {
   const me = useArenaStore((s) => s.role);
+  const email = useArenaStore((s) => s.email);
+  const user = useCurrentUser();
+  const owner = isOwnerIdentity(user?.primaryEmail, user?.displayName, email);
   const [members, setMembers] = useState<GuildMember[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -815,29 +890,221 @@ function MemberAdmin() {
   }
 
   return (
-    <ul className="flex flex-col gap-1">
-      {members.map((m) => (
-        <li key={m.userId} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{m.displayName ?? m.email ?? m.userId}</p>
-            <p className="truncate text-xs text-muted-foreground">{m.email ?? m.userId}</p>
-          </div>
-          <Button
-            size="sm"
-            variant={m.role === "admin" ? "default" : "secondary"}
-            disabled={busyId === m.userId || (m.role === "admin" && me === "admin" && members.filter((x) => x.role === "admin").length === 1)}
-            onClick={() => void toggle(m)}
+    <div className="flex flex-col gap-3">
+      {owner ? (
+        <p className="text-sm text-muted-foreground">
+          In-game names are yours to set, including your own. Everyone else sees them in the log.
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">In-game names are set by the owner.</p>
+      )}
+      <ul className="flex flex-col gap-1">
+        {members.map((m) => (
+          <li
+            key={m.userId}
+            className="flex flex-col gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)] sm:flex-row sm:items-center sm:justify-between"
           >
-            {m.role === "admin" ? "Admin" : "Member"}
-          </Button>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">
+                {m.ingameName || m.displayName || m.email || m.userId}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">{m.email ?? m.userId}</p>
+              {owner ? (
+                <IngameNameField member={m} onSaved={setMembers} />
+              ) : null}
+            </div>
+            <Button
+              size="sm"
+              variant={m.role === "admin" ? "default" : "secondary"}
+              disabled={
+                busyId === m.userId ||
+                (m.role === "admin" && me === "admin" && members.filter((x) => x.role === "admin").length === 1)
+              }
+              onClick={() => void toggle(m)}
+            >
+              {m.role === "admin" ? "Admin" : "Member"}
+            </Button>
+          </li>
+        ))}
+        {members.length === 0 ? (
+          <li className="rounded-xl bg-card px-4 py-5 text-sm text-muted-foreground shadow-[var(--shadow-border)]">
+            No members yet.
+          </li>
+        ) : null}
+      </ul>
+    </div>
+  );
+}
+
+function IngameNameField({
+  member,
+  onSaved,
+}: {
+  member: GuildMember;
+  onSaved: (next: GuildMember[]) => void;
+}) {
+  const [value, setValue] = useState(member.ingameName ?? "");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setValue(member.ingameName ?? "");
+  }, [member.ingameName]);
+
+  async function save() {
+    const next = value.trim();
+    if (next === (member.ingameName ?? "")) return;
+    setBusy(true);
+    try {
+      const list = await setIngameName({ data: { userId: member.userId, name: next } });
+      onSaved(list);
+      toast(next ? `In-game name · ${next}` : "In-game name cleared");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save name");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-2 flex gap-2">
+      <Input
+        value={value}
+        maxLength={24}
+        placeholder="In-game name"
+        disabled={busy}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            void save();
+          }
+        }}
+      />
+      <Button size="sm" variant="secondary" disabled={busy} onClick={() => void save()}>
+        Save
+      </Button>
+    </div>
+  );
+}
+
+function ago(at: number): string {
+  const s = Math.max(0, Math.floor((Date.now() - at) / 1000));
+  if (s < 45) return "just now";
+  if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  if (s < 86400 * 7) return `${Math.floor(s / 86400)}d`;
+  return new Date(at).toLocaleDateString();
+}
+
+function ActivityLog() {
+  const [rows, setRows] = useState<AdminLogRow[] | null>(null);
+
+  useEffect(() => {
+    void listAdminLog()
+      .then(setRows)
+      .catch(() => {
+        toast.error("Could not load log");
+        setRows([]);
+      });
+  }, []);
+
+  if (!rows) {
+    return <p className="text-sm text-muted-foreground">Loading log…</p>;
+  }
+
+  if (rows.length === 0) {
+    return (
+      <p className="rounded-xl bg-card px-4 py-5 text-sm text-muted-foreground shadow-[var(--shadow-border)]">
+        No admin changes yet. Saves, icons, roles, and names show up here — batched if the same admin does several in a row.
+      </p>
+    );
+  }
+
+  return (
+    <ul className="flex flex-col gap-1">
+      {rows.map((row) => (
+        <li
+          key={row.id}
+          className="flex items-baseline justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]"
+        >
+          <div className="min-w-0">
+            <p className="truncate text-sm">{row.summary}</p>
+            <p className="truncate text-xs text-muted-foreground">{row.actor}</p>
+          </div>
+          <p className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">{ago(row.at)}</p>
         </li>
       ))}
-      {members.length === 0 ? (
-        <li className="rounded-xl bg-card px-4 py-5 text-sm text-muted-foreground shadow-[var(--shadow-border)]">
-          No members yet.
-        </li>
-      ) : null}
     </ul>
+  );
+}
+
+function rate(wins: number, losses: number): string {
+  const n = wins + losses;
+  if (n === 0) return "—";
+  return `${Math.round((wins / n) * 100)}%`;
+}
+
+function AnalyticsPanel() {
+  const [data, setData] = useState<{ recipes: RecipeStat[]; walls: WallStat[] } | null>(null);
+
+  useEffect(() => {
+    void getAnalytics()
+      .then(setData)
+      .catch(() => toast.error("Could not load stats"));
+  }, []);
+
+  if (!data) {
+    return <p className="text-sm text-muted-foreground">Loading stats…</p>;
+  }
+
+  const fights = data.recipes.reduce((s, r) => s + r.wins + r.losses, 0);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <p className="text-sm text-muted-foreground">
+        Fills from Won / Lost on Scout. Stay on — generated strategies later will use this.
+        {fights === 0 ? " No fights recorded yet." : ` ${fights} recorded.`}
+      </p>
+      <section>
+        <h2 className="mb-2 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+          By wall type
+        </h2>
+        <ul className="flex flex-col gap-1">
+          {data.walls.map((w) => (
+            <li
+              key={w.archetype}
+              className="flex items-baseline justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]"
+            >
+              <p className="truncate text-sm">{w.title}</p>
+              <p className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                {w.wins}W {w.losses}L · {rate(w.wins, w.losses)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section>
+        <h2 className="mb-2 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+          By strategy
+        </h2>
+        <ul className="flex flex-col gap-1">
+          {data.recipes.map((r) => (
+            <li
+              key={r.id}
+              className="flex items-baseline justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm">{r.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{r.author}</p>
+              </div>
+              <p className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                {r.wins}W {r.losses}L · {rate(r.wins, r.losses)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
   );
 }
 

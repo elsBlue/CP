@@ -60,6 +60,7 @@ export const HEROES: Hero[] = [
     kit: "S1 HP-scaling poke and a small CR push. S2: 70% Decrease Defense, +50% CR, splash AoE. S3: strip all, then Seal and Cannot Buff for 2 turns. Starts with Skill Effect Nullifier. Soulburn ignores ER.",
     defense: 8,
     offense: 9,
+    verified: true,
   },
   {
     id: "rinak",
@@ -1207,6 +1208,7 @@ export const HEROES: Hero[] = [
     kit: "S1 heals the team (HP scaling). Soulburn cleanses an ally with Divinity, pushes CR, and restores a Fragment of Life. S2: four Divinity; when an ally dies, revive them as a Fragment of Life. S3: full heal + Speed; if she has Divinity, Time Reversal on allies.",
     defense: 9,
     offense: 5,
+    verified: true,
   },
   {
     id: "judge-kise",
