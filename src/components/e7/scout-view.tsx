@@ -74,26 +74,32 @@ export function ScoutView() {
           <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
             Scout
           </p>
+          {read && meta ? (
+            <p className="text-sm font-medium text-muted-foreground">Wall type</p>
+          ) : null}
           <h1 className="font-display text-3xl leading-[1.1] tracking-tight sm:text-4xl">
-            {read && meta ? meta.title : "Their defense"}
+            {read && meta ? meta.title : "The wall"}
           </h1>
           <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
             {read && meta
               ? meta.blurb
-              : "Tap the four slots. Counters use heroes you marked as built on Roster."}
+              : "The wall is the four-hero defense you attack. Fill the slots — we name the type from their kits."}
           </p>
           {read && meta ? (
             <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-              Pick a counter on the right. Won or Lost after the fight saves to your account.
+              Counters on the right match this type. Won or Lost after the fight saves to your account.
             </p>
           ) : null}
         </header>
 
         <div className="rise-in-2 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
-              Enemy defense
-            </p>
+            <div className="min-w-0">
+              <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                Enemy wall
+              </p>
+              <p className="text-sm text-muted-foreground">Four heroes on their defense</p>
+            </div>
             <button
               type="button"
               className="min-h-11 px-2 text-sm text-muted-foreground hover:text-foreground"
@@ -108,6 +114,9 @@ export function ScoutView() {
             pickerTitle="Enemy unit"
             labels={["Lead", "Two", "Three", "Four"]}
           />
+          {presets.length > 0 ? (
+            <p className="text-sm text-muted-foreground">Example walls</p>
+          ) : null}
           <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pt-1">
             {presets.map((p) => (
               <button
@@ -131,8 +140,8 @@ export function ScoutView() {
           <div className="min-w-0">
             <p className="text-sm font-medium">Only built units</p>
             <p className="text-sm text-muted-foreground">
-              On: fill counters from {built.length} built hero{built.length === 1 ? "" : "s"}.
-              Off: use the full catalog.
+              On: fill counters from {built.length} built{" "}
+              {built.length === 1 ? "hero" : "heroes"}. Off: use the full catalog.
             </p>
           </div>
           <Switch checked={restrict} onCheckedChange={setRestrict} />
