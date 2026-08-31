@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" role="img" aria-label="Crownpath">
+  <rect width="16" height="16" rx="3" fill="#0a0b0c"/>
+  <polygon fill="#c5cdd8" points="2,10 4.5,5 7,10"/>
+  <polygon fill="#c5cdd8" points="5,10 8,2 11,10"/>
+  <polygon fill="#c5cdd8" points="9,10 11.5,5 14,10"/>
+  <rect x="2" y="10" width="12" height="2" fill="#c5cdd8"/>
+  <rect x="2" y="12" width="12" height="2" fill="#eef0f2"/>
+  <rect x="7" y="12" width="2" height="2" fill="#6d9b7a"/>
+</svg>

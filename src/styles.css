@@ -1,0 +1,195 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-background: #0a0b0c;
+  --color-foreground: #eef0f2;
+  --color-card: #121416;
+  --color-card-foreground: #eef0f2;
+  --color-popover: #16181b;
+  --color-popover-foreground: #eef0f2;
+  --color-primary: #c5cdd8;
+  --color-primary-foreground: #0a0b0c;
+  --color-secondary: #1a1d21;
+  --color-secondary-foreground: #eef0f2;
+  --color-muted: #1a1d21;
+  --color-muted-foreground: #8d939c;
+  --color-accent: #23262b;
+  --color-accent-foreground: #eef0f2;
+  --color-destructive: #c45c5c;
+  --color-destructive-foreground: #eef0f2;
+  --color-border: #ffffff14;
+  --color-input: #ffffff14;
+  --color-ring: #c5cdd8;
+  --color-steel: #c5cdd8;
+  --color-win: #6d9b7a;
+  --color-loss: #c45c5c;
+  --color-fire: #c47a5a;
+  --color-ice: #7aa0c4;
+  --color-earth: #8a9a62;
+  --color-light: #cfc6a8;
+  --color-dark: #7a7e8c;
+  --color-elevated: #1a1d21;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius: 12px;
+
+  --shadow-border: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --shadow-border-hover: 0 0 0 1px rgba(255, 255, 255, 0.14);
+
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    overflow-x: clip;
+  }
+
+  body {
+    min-height: 100dvh;
+    background:
+      radial-gradient(
+        900px 480px at 8% -8%,
+        color-mix(in oklab, var(--color-steel) 7%, transparent),
+        transparent 55%
+      ),
+      var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    font-family: var(--font-display);
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+}
+
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise-in {
+  animation: rise-in 400ms var(--ease-smooth-out) both;
+}
+
+.rise-in-2 {
+  animation: rise-in 400ms var(--ease-smooth-out) 80ms both;
+}
+
+.rise-in-3 {
+  animation: rise-in 400ms var(--ease-smooth-out) 140ms both;
+}
+
+@keyframes boot-shade {
+  0% {
+    opacity: 0;
+  }
+  26% {
+    opacity: 0.24;
+  }
+  74% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.boot-shade {
+  opacity: 0;
+  animation: boot-shade 12s cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+
+.boot-shade-media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  mix-blend-mode: lighten;
+  filter: saturate(0.85) brightness(0.82);
+}
+
+.boot-shade-veil {
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in oklab, var(--color-background) 42%, transparent) 0%,
+    color-mix(in oklab, var(--color-background) 12%, transparent) 50%,
+    color-mix(in oklab, var(--color-background) 70%, transparent) 100%
+  );
+}
+
+@media (min-width: 768px) {
+  .boot-shade {
+    width: clamp(22rem, 76vmin, 46rem);
+    height: clamp(22rem, 76vmin, 46rem);
+  }
+
+  .boot-shade-media {
+    object-fit: cover;
+    object-position: center 16%;
+    filter: saturate(0.82) brightness(0.88) blur(1px);
+  }
+
+  .boot-shade-veil {
+    background: radial-gradient(
+      circle at center,
+      transparent 28%,
+      color-mix(in oklab, var(--color-background) 28%, transparent) 72%,
+      color-mix(in oklab, var(--color-background) 62%, transparent) 100%
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

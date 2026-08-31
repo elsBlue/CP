@@ -1,0 +1,771 @@
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { HeroPortrait } from "@/components/hero-portrait";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  deleteHero,
+  deletePreset,
+  deleteRecipe,
+  listMembers,
+  saveHero,
+  savePreset,
+  saveRecipe,
+  setMemberRole,
+} from "@/lib/e7/api";
+import { useCatalog } from "@/lib/e7/catalog";
+import { CLASS_LABEL, ELEMENT_LABEL } from "@/lib/e7/heroes";
+import { fileToHeroIcon } from "@/lib/e7/icon";
+import { ARCHETYPE_META } from "@/lib/e7/recipes";
+import { useArenaStore } from "@/lib/e7/store";
+import {
+  ARCHETYPE_IDS,
+  ROLE_IDS,
+  TAG_IDS,
+  type DefensePreset,
+  type GuildMember,
+  type Hero,
+  type Recipe,
+  type SlotNeed,
+} from "@/lib/e7/types";
+import { cn } from "@/lib/utils";
+
+type Tab = "units" | "strategies" | "walls" | "members";
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 64);
+}
+
+function applyCatalog(next: { heroes: Hero[]; recipes: Recipe[]; presets: DefensePreset[] }) {
+  useCatalog.getState().setCatalog(next);
+}
+
+export function AdminView() {
+  const [tab, setTab] = useState<Tab>("units");
+  const unitCount = useCatalog((s) => s.heroes.length);
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Admin</p>
+        <h1 className="font-display text-3xl leading-[1.1] tracking-tight sm:text-4xl">Catalog</h1>
+        <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
+          Units, strategies, and wall presets are shared. Progress stays private.
+        </p>
+        <p className="font-mono text-sm tabular-nums text-muted-foreground">{unitCount} units</p>
+      </header>
+      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
+        {(
+          [
+            ["units", "Units"],
+            ["strategies", "Strategies"],
+            ["walls", "Walls"],
+            ["members", "Members"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={cn(
+              "h-11 shrink-0 rounded-full px-4 text-sm",
+              tab === id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === "units" ? <HeroAdmin /> : null}
+      {tab === "strategies" ? <RecipeAdmin /> : null}
+      {tab === "walls" ? <PresetAdmin /> : null}
+      {tab === "members" ? <MemberAdmin /> : null}
+    </div>
+  );
+}
+
+function HeroAdmin() {
+  const heroes = useCatalog((s) => s.heroes);
+  const [query, setQuery] = useState("");
+  const [editing, setEditing] = useState<Hero | null>(null);
+  const list = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return heroes;
+    return heroes.filter((h) => `${h.name} ${h.short} ${h.id}`.toLowerCase().includes(q));
+  }, [heroes, query]);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-end justify-between gap-3">
+        <p className="font-mono text-sm tabular-nums text-muted-foreground">
+          {query ? `${list.length} of ${heroes.length}` : `${heroes.length} units`}
+        </p>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search units…" className="sm:flex-1" />
+        <Button
+          onClick={() =>
+            setEditing({
+              id: "",
+              name: "",
+              short: "",
+              element: "fire",
+              class: "warrior",
+              tier: "S",
+              roles: [],
+              tags: [],
+              kit: "",
+              defense: 5,
+              offense: 5,
+              icon: "",
+            })
+          }
+        >
+          Add unit
+        </Button>
+      </div>
+      {editing ? (
+        <HeroForm
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => setEditing(null)}
+        />
+      ) : null}
+      <ul className="flex flex-col gap-1">
+        {list.map((hero) => (
+          <li key={hero.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
+            <div className="flex min-w-0 items-center gap-3">
+              <HeroPortrait hero={hero} size="sm" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{hero.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {hero.short} · {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]} · {hero.tier}
+                </p>
+              </div>
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => setEditing(hero)}>
+              Edit
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function HeroForm({
+  initial,
+  onClose,
+  onSaved,
+}: {
+  initial: Hero;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const isNew = !useCatalog.getState().heroes.some((h) => h.id === initial.id);
+  const [form, setForm] = useState<Hero>({ ...initial, icon: initial.icon ?? "" });
+  const [busy, setBusy] = useState(false);
+  const [iconBusy, setIconBusy] = useState(false);
+
+  function patch(next: Partial<Hero>) {
+    setForm((cur) => {
+      const merged = { ...cur, ...next };
+      if (isNew && next.name && !cur.id) merged.id = slugify(next.name);
+      if (isNew && next.name && !cur.short) merged.short = next.name.split(" ")[0] ?? next.name;
+      return merged;
+    });
+  }
+
+  async function save() {
+    setBusy(true);
+    try {
+      const next = await saveHero({ data: { ...form, icon: form.icon ?? "" } });
+      applyCatalog(next);
+      toast("Unit saved");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!form.id || isNew) return;
+    setBusy(true);
+    try {
+      const next = await deleteHero({ data: { id: form.id } });
+      applyCatalog(next);
+      toast("Unit removed");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-xl bg-card p-4 shadow-[var(--shadow-border)] sm:p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-display text-xl tracking-tight">{isNew ? "New unit" : "Edit unit"}</h2>
+        <button type="button" className="h-11 px-2 text-sm text-muted-foreground" onClick={onClose}>
+          Close
+        </button>
+      </div>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <HeroPortrait hero={{ ...form, name: form.name || "New", short: form.short || "New" }} size="lg" />
+        <div className="min-w-0 flex-1">
+          <Label htmlFor="hero-icon">Icon</Label>
+          <p className="mt-1 text-xs text-muted-foreground">Upload a square image, or paste an image URL.</p>
+          <div className="mt-2 flex flex-col gap-2">
+            <Input
+              id="hero-icon-file"
+              type="file"
+              accept="image/*"
+              disabled={busy || iconBusy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setIconBusy(true);
+                void fileToHeroIcon(file)
+                  .then((icon) => patch({ icon }))
+                  .catch((err) => toast.error(err instanceof Error ? err.message : "Could not read image"))
+                  .finally(() => setIconBusy(false));
+              }}
+            />
+            <Input
+              id="hero-icon"
+              value={form.icon?.startsWith("data:") ? "" : (form.icon ?? "")}
+              placeholder="https://…"
+              onChange={(e) => patch({ icon: e.target.value })}
+            />
+            {form.icon ? (
+              <button
+                type="button"
+                className="h-11 self-start px-3 text-sm text-muted-foreground hover:text-foreground"
+                onClick={() => patch({ icon: "" })}
+              >
+                Remove icon
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Name">
+          <Input value={form.name} onChange={(e) => patch({ name: e.target.value })} />
+        </Field>
+        <Field label="Short">
+          <Input value={form.short} onChange={(e) => patch({ short: e.target.value })} />
+        </Field>
+        <Field label="Id">
+          <Input value={form.id} disabled={!isNew} onChange={(e) => patch({ id: slugify(e.target.value) })} />
+        </Field>
+        <Field label="Tier">
+          <NativeSelect value={form.tier} onChange={(v) => patch({ tier: v as Hero["tier"] })} options={["SS", "S", "A", "B"]} />
+        </Field>
+        <Field label="Element">
+          <NativeSelect
+            value={form.element}
+            onChange={(v) => patch({ element: v as Hero["element"] })}
+            options={Object.keys(ELEMENT_LABEL)}
+            labels={ELEMENT_LABEL}
+          />
+        </Field>
+        <Field label="Class">
+          <NativeSelect
+            value={form.class}
+            onChange={(v) => patch({ class: v as Hero["class"] })}
+            options={Object.keys(CLASS_LABEL)}
+            labels={CLASS_LABEL}
+          />
+        </Field>
+        <Field label="Defense 0–10">
+          <Input type="number" min={0} max={10} value={form.defense} onChange={(e) => patch({ defense: Number(e.target.value) })} />
+        </Field>
+        <Field label="Offense 0–10">
+          <Input type="number" min={0} max={10} value={form.offense} onChange={(e) => patch({ offense: Number(e.target.value) })} />
+        </Field>
+      </div>
+      <div className="mt-4">
+        <Label>Roles</Label>
+        <ChipSet values={ROLE_IDS} selected={form.roles} onToggle={(role) => {
+          const on = form.roles.includes(role as Hero["roles"][number]);
+          patch({ roles: on ? form.roles.filter((r) => r !== role) : [...form.roles, role as Hero["roles"][number]] });
+        }} />
+      </div>
+      <div className="mt-4">
+        <Label>Tags</Label>
+        <ChipSet values={TAG_IDS} selected={form.tags} onToggle={(tag) => {
+          const on = form.tags.includes(tag as Hero["tags"][number]);
+          patch({ tags: on ? form.tags.filter((t) => t !== tag) : [...form.tags, tag as Hero["tags"][number]] });
+        }} />
+      </div>
+      <div className="mt-4">
+        <Field label="Kit note">
+          <Textarea value={form.kit} onChange={(e) => patch({ kit: e.target.value })} />
+        </Field>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button onClick={() => void save()} disabled={busy || !form.id || !form.name}>
+          Save
+        </Button>
+        {!isNew ? (
+          <Button variant="destructive" onClick={() => void remove()} disabled={busy}>
+            Delete
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function RecipeAdmin() {
+  const recipes = useCatalog((s) => s.recipes);
+  const [editing, setEditing] = useState<Recipe | null>(null);
+  const blank: Recipe = {
+    id: "",
+    name: "",
+    vs: [],
+    summary: "",
+    wincon: "",
+    setup: "",
+    pitfalls: [],
+    slots: [
+      { label: "One", prefer: [], roles: [], tags: [] },
+      { label: "Two", prefer: [], roles: [], tags: [] },
+      { label: "Three", prefer: [], roles: [], tags: [] },
+      { label: "Four", prefer: [], roles: [], tags: [] },
+    ],
+  };
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setEditing(blank)}>Add strategy</Button>
+      </div>
+      {editing ? <RecipeForm initial={editing} onClose={() => setEditing(null)} onSaved={() => setEditing(null)} /> : null}
+      <ul className="flex flex-col gap-1">
+        {recipes.map((recipe) => (
+          <li key={recipe.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{recipe.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{recipe.vs.map((v) => ARCHETYPE_META[v]?.title ?? v).join(", ")}</p>
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => setEditing(recipe)}>
+              Edit
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function RecipeForm({
+  initial,
+  onClose,
+  onSaved,
+}: {
+  initial: Recipe;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const isNew = !useCatalog.getState().recipes.some((r) => r.id === initial.id);
+  const [form, setForm] = useState<Recipe>(initial);
+  const [busy, setBusy] = useState(false);
+  const pitfallsText = form.pitfalls.join("\n");
+
+  async function save() {
+    setBusy(true);
+    try {
+      const next = await saveRecipe({
+        data: {
+          ...form,
+          slots: form.slots.map((s) => ({
+            label: s.label,
+            roles: s.roles ?? [],
+            tags: s.tags ?? [],
+            prefer: s.prefer ?? [],
+          })),
+        },
+      });
+      applyCatalog(next);
+      toast("Strategy saved");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!form.id || isNew) return;
+    setBusy(true);
+    try {
+      const next = await deleteRecipe({ data: { id: form.id } });
+      applyCatalog(next);
+      toast("Strategy removed");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function setSlot(index: number, next: SlotNeed) {
+    const slots = [...form.slots] as Recipe["slots"];
+    slots[index] = next;
+    setForm({ ...form, slots });
+  }
+
+  return (
+    <section className="flex flex-col gap-4 rounded-xl bg-card p-4 shadow-[var(--shadow-border)] sm:p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-xl tracking-tight">{isNew ? "New strategy" : "Edit strategy"}</h2>
+        <button type="button" className="h-11 px-2 text-sm text-muted-foreground" onClick={onClose}>
+          Close
+        </button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Name">
+          <Input
+            value={form.name}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                name: e.target.value,
+                id: isNew && !form.id ? slugify(e.target.value) : form.id,
+              })
+            }
+          />
+        </Field>
+        <Field label="Id">
+          <Input value={form.id} disabled={!isNew} onChange={(e) => setForm({ ...form, id: slugify(e.target.value) })} />
+        </Field>
+      </div>
+      <div>
+        <Label>Works vs</Label>
+        <ChipSet
+          values={ARCHETYPE_IDS}
+          selected={form.vs}
+          labels={Object.fromEntries(ARCHETYPE_IDS.map((id) => [id, ARCHETYPE_META[id].title]))}
+          onToggle={(id) => {
+            const on = form.vs.includes(id as Recipe["vs"][number]);
+            setForm({
+              ...form,
+              vs: on ? form.vs.filter((v) => v !== id) : [...form.vs, id as Recipe["vs"][number]],
+            });
+          }}
+        />
+      </div>
+      <Field label="Summary">
+        <Textarea value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
+      </Field>
+      <Field label="Wincon">
+        <Textarea value={form.wincon} onChange={(e) => setForm({ ...form, wincon: e.target.value })} />
+      </Field>
+      <Field label="Setup">
+        <Textarea value={form.setup} onChange={(e) => setForm({ ...form, setup: e.target.value })} />
+      </Field>
+      <Field label="Breaks if (one per line)">
+        <Textarea value={pitfallsText} onChange={(e) => setForm({ ...form, pitfalls: e.target.value.split("\n").filter(Boolean) })} />
+      </Field>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {form.slots.map((slot, i) => (
+          <div key={i} className="rounded-lg bg-secondary p-3">
+            <Field label={`Slot ${i + 1}`}>
+              <Input value={slot.label} onChange={(e) => setSlot(i, { ...slot, label: e.target.value })} />
+            </Field>
+            <Field label="Preferred ids">
+              <Input
+                value={(slot.prefer ?? []).join(", ")}
+                onChange={(e) =>
+                  setSlot(i, {
+                    ...slot,
+                    prefer: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                  })
+                }
+                placeholder="harsetti, belian"
+              />
+            </Field>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={() => void save()} disabled={busy || !form.id || !form.name}>
+          Save
+        </Button>
+        {!isNew ? (
+          <Button variant="destructive" onClick={() => void remove()} disabled={busy}>
+            Delete
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function PresetAdmin() {
+  const presets = useCatalog((s) => s.presets);
+  const heroes = useCatalog((s) => s.heroes);
+  const [editing, setEditing] = useState<DefensePreset | null>(null);
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setEditing({ id: "", name: "", heroIds: ["", "", "", ""], blurb: "" })}>
+          Add wall
+        </Button>
+      </div>
+      {editing ? (
+        <PresetForm
+          initial={editing}
+          heroes={heroes}
+          onClose={() => setEditing(null)}
+          onSaved={() => setEditing(null)}
+        />
+      ) : null}
+      <ul className="flex flex-col gap-1">
+        {presets.map((p) => (
+          <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{p.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{p.heroIds.filter(Boolean).join(" · ")}</p>
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => setEditing(p)}>
+              Edit
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function PresetForm({
+  initial,
+  heroes,
+  onClose,
+  onSaved,
+}: {
+  initial: DefensePreset;
+  heroes: Hero[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const isNew = !useCatalog.getState().presets.some((p) => p.id === initial.id);
+  const [form, setForm] = useState<DefensePreset>({
+    ...initial,
+    heroIds: [...initial.heroIds, "", "", "", ""].slice(0, 4),
+  });
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const next = await savePreset({ data: form });
+      applyCatalog(next);
+      toast("Wall saved");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!form.id || isNew) return;
+    setBusy(true);
+    try {
+      const next = await deletePreset({ data: { id: form.id } });
+      applyCatalog(next);
+      toast("Wall removed");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="flex flex-col gap-3 rounded-xl bg-card p-4 shadow-[var(--shadow-border)] sm:p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-xl tracking-tight">{isNew ? "New wall" : "Edit wall"}</h2>
+        <button type="button" className="h-11 px-2 text-sm text-muted-foreground" onClick={onClose}>
+          Close
+        </button>
+      </div>
+      <Field label="Name">
+        <Input
+          value={form.name}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              name: e.target.value,
+              id: isNew && !form.id ? slugify(e.target.value) : form.id,
+            })
+          }
+        />
+      </Field>
+      <Field label="Blurb">
+        <Input value={form.blurb} onChange={(e) => setForm({ ...form, blurb: e.target.value })} />
+      </Field>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {form.heroIds.map((id, i) => (
+          <Field key={i} label={`Unit ${i + 1}`}>
+            <NativeSelect
+              value={id}
+              onChange={(v) => {
+                const heroIds = [...form.heroIds];
+                heroIds[i] = v;
+                setForm({ ...form, heroIds });
+              }}
+              options={["", ...heroes.map((h) => h.id)]}
+              labels={Object.fromEntries(heroes.map((h) => [h.id, h.name]))}
+            />
+          </Field>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={() => void save()} disabled={busy || !form.name || form.heroIds.filter(Boolean).length < 4}>
+          Save
+        </Button>
+        {!isNew ? (
+          <Button variant="destructive" onClick={() => void remove()} disabled={busy}>
+            Delete
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function MemberAdmin() {
+  const me = useArenaStore((s) => s.role);
+  const [members, setMembers] = useState<GuildMember[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void listMembers()
+      .then(setMembers)
+      .catch(() => toast.error("Could not load members"));
+  }, []);
+
+  async function toggle(member: GuildMember) {
+    const nextRole = member.role === "admin" ? "member" : "admin";
+    setBusyId(member.userId);
+    try {
+      const next = await setMemberRole({ data: { userId: member.userId, role: nextRole } });
+      setMembers(next);
+      toast(nextRole === "admin" ? "Promoted to admin" : "Moved to member");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update role");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <ul className="flex flex-col gap-1">
+      {members.map((m) => (
+        <li key={m.userId} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{m.displayName ?? m.email ?? m.userId}</p>
+            <p className="truncate text-xs text-muted-foreground">{m.email ?? m.userId}</p>
+          </div>
+          <Button
+            size="sm"
+            variant={m.role === "admin" ? "default" : "secondary"}
+            disabled={busyId === m.userId || (m.role === "admin" && me === "admin" && members.filter((x) => x.role === "admin").length === 1)}
+            onClick={() => void toggle(m)}
+          >
+            {m.role === "admin" ? "Admin" : "Member"}
+          </Button>
+        </li>
+      ))}
+      {members.length === 0 ? (
+        <li className="rounded-xl bg-card px-4 py-5 text-sm text-muted-foreground shadow-[var(--shadow-border)]">
+          No members yet.
+        </li>
+      ) : null}
+    </ul>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <Label>{label}</Label>
+      {children}
+    </label>
+  );
+}
+
+function NativeSelect({
+  value,
+  onChange,
+  options,
+  labels,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  labels?: Record<string, string>;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-11 w-full rounded-md bg-secondary px-3 text-sm shadow-[var(--shadow-border)] outline-none"
+    >
+      {options.map((opt) => (
+        <option key={opt || "empty"} value={opt}>
+          {opt === "" ? "—" : labels?.[opt] ?? opt}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function ChipSet({
+  values,
+  selected,
+  onToggle,
+  labels,
+}: {
+  values: readonly string[];
+  selected: readonly string[];
+  onToggle: (value: string) => void;
+  labels?: Record<string, string>;
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {values.map((value) => {
+        const on = selected.includes(value);
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onToggle(value)}
+            className={cn(
+              "h-11 rounded-full px-3 text-xs",
+              on ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+            )}
+          >
+            {labels?.[value] ?? value.replace(/-/g, " ")}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

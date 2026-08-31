@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/login",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Crownpath",
+      "hasCanvas": false,
+      "bodyTextLen": 219,
+      "bodyTextHash": "6c93169383f48bbe70ef40092cba86ec44d86b85e2f0b87eb7abab994e39924c",
+      "bodyTextPrefix": "Crownpath Guild scout. Each member keeps their own roster and re",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Crownpath",
+      "hasCanvas": false,
+      "bodyTextLen": 219,
+      "bodyTextHash": "6c93169383f48bbe70ef40092cba86ec44d86b85e2f0b87eb7abab994e39924c",
+      "bodyTextPrefix": "Crownpath Guild scout. Each member keeps their own roster and re",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}
