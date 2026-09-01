@@ -105,11 +105,18 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       note: "Eats one skill. Do not open with your only strip.",
     });
   }
-  if (ids.has("setsuka") || ids.has("remnant-violet")) {
+  if (ids.has("remnant-violet")) {
     add({
       key: "evade",
       label: "Evasion",
-      note: "Single-target third skills miss often. Use area attacks, Dual Attacks, or injury.",
+      note: "Single-target third skills into Violet miss often. Use area attacks, Dual Attacks, or a cannot-miss Soulburn.",
+      answerTags: ["aoe", "dual-attack", "injury"],
+    });
+  } else if (ids.has("setsuka")) {
+    add({
+      key: "evade",
+      label: "Evasion",
+      note: "+30% Evasion on the whole wall. Any single-target skill can miss — not only a third skill. When an ally other than her evades, she counters.",
       answerTags: ["aoe", "dual-attack", "injury"],
     });
   }
@@ -586,7 +593,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "def-magic",
       label: "Defensive Magic",
-      note: "At four Soul, skill damage nullifies. Belian turns this off.",
+      note: "At four Soul, skill damage nullifies. Belian turns this off. Battle start: +40% Fighting Spirit and Focus to her allies — miss cores and Fighting Spirit cores charge faster.",
       answerRoles: ["soulblock"],
     });
   }
@@ -752,6 +759,41 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       note: "Heals and Immunity clip buff duration. She takes the cycle.",
     });
   }
+  if (hasUnique(heroes, "skill effect nullifier") || ids.has("new-moon-luna")) {
+    add({
+      key: "nm-luna",
+      label: "NM Luna nullifier",
+      note: "She starts with Skill Effect Nullifier: one effect from the first skill into her is cancelled. This is not Fallen Cecilia — it does not eat the whole skill.",
+    });
+  }
+  if (ids.has("conqueror-lilias")) {
+    add({
+      key: "c-lilias",
+      label: "C.Lilias",
+      note: "For Honor grants an extra turn. The follow-up Dual Attack is her basic skill from a random ally — that is Dual Attack. Do not Dual Attack into Lionheart Cermia if she is also here.",
+    });
+  }
+  if (hasUnique(heroes, "final deliverance") || ids.has("hecate")) {
+    add({
+      key: "hecate-extra",
+      label: "Hecate extra-attack",
+      note: "On her turn she extra-attacks everyone, then Stealth. Death's Dominion already turns revive off for both sides. The third skill starts the first fight on cooldown.",
+    });
+  }
+  if (hasUnique(heroes, "burst") || ids.has("archdemons-shadow")) {
+    add({
+      key: "ads",
+      label: "ADS Burst",
+      note: "Seal on the basic skill. If the target is sealed, Burst is an extra area attack — not Dual Attack. Dissolution extra-turns and does not trigger counters.",
+    });
+  }
+  if (hasUnique(heroes, "star extinction") || ids.has("straze")) {
+    add({
+      key: "straze",
+      label: "Straze",
+      note: "Star Extinction is area damage, Invincible for one turn, and does not trigger counters. Destructive Gaze is an area strip. This is a cleave closer, not a stall.",
+    });
+  }
   if (roles.has("opener") && roles.has("cleave")) {
     add({
       key: "cleave",
@@ -779,6 +821,11 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     nullifier: 8,
     collapse: 8,
     salome: 8,
+    "nm-luna": 8,
+    "c-lilias": 12,
+    "hecate-extra": 10,
+    ads: 12,
+    straze: 12,
     "a-yufine": 11,
     block: 8,
     "cannot-die": 9,

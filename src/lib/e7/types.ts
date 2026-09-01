@@ -7,6 +7,7 @@ export type HeroClass =
   | "thief"
   | "soulweaver";
 export type Tier = "SS" | "S" | "A" | "B";
+export type Rarity = 3 | 4 | 5;
 
 export type Role =
   | "opener"
@@ -216,6 +217,7 @@ export type Hero = {
   element: Element;
   class: HeroClass;
   tier: Tier;
+  rarity?: Rarity;
   roles: Role[];
   tags: Tag[];
   effects?: NormalEffect[];

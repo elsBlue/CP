@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
-import { HEROES, SAMPLE_ROSTER } from "./heroes";
+import { HEROES, SAMPLE_ROSTER, heroRarity } from "./heroes";
 import { heroEffects } from "./effects";
 import { isOwnerIdentity } from "./owner";
 import { DEFAULT_VP } from "./ranks";
@@ -96,7 +96,14 @@ function heroFromRow(row: Record<string, unknown>): Hero {
     icon: String(row.icon ?? ""),
     verified: Boolean(row.verified),
     checkedAt: asCheckedAt(row.checked_at),
+    rarity: asRarity(row.rarity),
   };
+}
+
+function asRarity(value: unknown): Hero["rarity"] {
+  const n = Number(value);
+  if (n === 3 || n === 4 || n === 5) return n;
+  return 5;
 }
 
 function recipeFromRow(row: Record<string, unknown>): Recipe {
@@ -161,7 +168,7 @@ async function ensureCatalog() {
   for (let i = 0; i < HEROES.length; i++) {
     const h = HEROES[i]!;
     await sql`
-      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order, verified, checked_at)
+      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order, verified, checked_at, rarity)
       values (
         ${h.id}, ${h.name}, ${h.short}, ${h.element}, ${h.class}, ${h.tier},
         ${JSON.stringify(h.roles)}::jsonb, ${JSON.stringify(h.tags)}::jsonb,
@@ -170,10 +177,13 @@ async function ensureCatalog() {
         ${JSON.stringify(h.debuffs ?? [])}::jsonb,
         ${JSON.stringify(h.uniqueEffects ?? [])}::jsonb,
         ${h.kit}, ${h.defense}, ${h.offense}, ${h.icon ?? ""}, ${i}, ${h.verified ?? false},
-        ${h.verified ? (h.checkedAt ?? todayStamp()) : null}
+        ${h.verified ? (h.checkedAt ?? todayStamp()) : null}, ${heroRarity(h)}
       )
       on conflict (id) do nothing
     `;
+  }
+  for (const h of HEROES) {
+    await sql`update heroes set rarity = ${heroRarity(h)} where id = ${h.id}`;
   }
   for (const h of HEROES) {
     const effects = heroEffects(h);
@@ -675,6 +685,7 @@ const heroSchema = z.object({
   element: z.enum(["fire", "ice", "earth", "light", "dark"]),
   class: z.enum(["knight", "warrior", "mage", "ranger", "thief", "soulweaver"]),
   tier: z.enum(["SS", "S", "A", "B"]),
+  rarity: z.union([z.literal(3), z.literal(4), z.literal(5)]).optional().default(5),
   roles: z.array(z.string()).max(12),
   tags: z.array(z.string()).max(20),
   effects: z.array(z.string()).max(30).optional().default([]),
@@ -716,8 +727,9 @@ export const saveHero = createServerFn({ method: "POST" })
       select name, short, kit, icon from heroes where id = ${data.id}
     `;
     const checkedAt = data.verified ? todayStamp() : null;
+    const rarity = data.rarity === 3 || data.rarity === 4 ? data.rarity : 5;
     await sql`
-      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order, verified, checked_at)
+      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order, verified, checked_at, rarity)
       values (
         ${data.id}, ${data.name}, ${data.short}, ${data.element}, ${data.class}, ${data.tier},
         ${JSON.stringify(data.roles)}::jsonb, ${JSON.stringify(data.tags)}::jsonb,
@@ -726,7 +738,7 @@ export const saveHero = createServerFn({ method: "POST" })
         ${JSON.stringify(data.debuffs ?? [])}::jsonb,
         ${JSON.stringify(data.uniqueEffects ?? [])}::jsonb,
         ${data.kit}, ${data.defense}, ${data.offense}, ${""}, 0, ${data.verified ?? false},
-        ${checkedAt}
+        ${checkedAt}, ${rarity}
       )
       on conflict (id) do update set
         name = excluded.name,
@@ -734,6 +746,7 @@ export const saveHero = createServerFn({ method: "POST" })
         element = excluded.element,
         class = excluded.class,
         tier = excluded.tier,
+        rarity = excluded.rarity,
         roles = excluded.roles,
         tags = excluded.tags,
         effects = excluded.effects,

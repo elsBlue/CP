@@ -235,10 +235,16 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
   }
   const notes = watch.map((t) => t.note);
   const meta = ARCHETYPE_META[archetype];
+  const headline =
+    archetype === "evasion-counter" &&
+    idSet.has("setsuka") &&
+    !idSet.has("remnant-violet")
+      ? "Setsuka gives the wall +30% Evasion and counters when an ally evades. That is not Remnant Violet."
+      : meta.blurb;
   return {
     archetype,
     title: meta.title,
-    headline: meta.blurb,
+    headline,
     threats,
     notes,
     watch,
@@ -254,7 +260,7 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
 function slotScore(
   hero: Hero,
   need: SlotNeed,
-  wall?: { offering?: boolean },
+  wall?: { offering?: boolean; ferocious?: boolean },
   used?: Set<string>,
 ): number {
   let score = 0;
@@ -273,6 +279,11 @@ function slotScore(
   ) {
     score += 8;
   }
+  if (wall?.ferocious && need.tags?.includes("injury")) {
+    if (hero.id === "urban-shadow-choux") score += 10;
+    else if (hero.id === "new-moon-luna") score += 8;
+    else if (hero.tags.includes("aoe") && hero.tags.includes("injury")) score += 6;
+  }
   const curse = new Set(["briar-witch-iseria", "hecate"]);
   const revive = new Set([
     "ruele-of-light",
@@ -280,6 +291,9 @@ function slotScore(
     "maid-chloe",
     "arbiter-vildred",
     "lisette",
+    "spirit-eye-celine",
+    "apocalypse-ravi",
+    "blood-moon-haste",
   ]);
   const picked = used ?? new Set<string>();
   const curseOn =
@@ -313,12 +327,15 @@ function fillRecipe(
       /offering|scales of equity/i.test(u.name),
     ),
   );
+  const ferocious = wallHeroes.some((h) =>
+    (h.uniqueEffects ?? []).some((u) => /ferocious stand/i.test(u.name)),
+  );
   for (const need of recipe.slots) {
     let best: Hero | null = null;
     let bestScore = 0;
     for (const hero of pool) {
       if (used.has(hero.id) || enemy.has(hero.id)) continue;
-      const s = slotScore(hero, need, { offering }, used);
+      const s = slotScore(hero, need, { offering, ferocious }, used);
       if (s > bestScore) {
         best = hero;
         bestScore = s;
@@ -378,7 +395,7 @@ function jobFor(
     case "zahhak":
       return `${n} is single-target injury after an extra turn.`;
     case "new-moon-luna":
-      return `${n} is area injury and a strip. She also starts with Skill Nullifier.`;
+      return `${n} is area injury and a strip. She starts with Skill Effect Nullifier: one effect from the first skill into her is cancelled. That is not Fallen Cecilia.`;
     case "last-rider-krau":
       return ctx?.sanctuary
         ? `${n} holds the front.`
@@ -528,6 +545,24 @@ function jobFor(
       return `${n} strips every buff, then a team Barrier. Nature Restoration is the team cleanse and Immunity. Barrier is not Barrier Inversion.`;
     case "death-dealer-ray":
       return `${n} is the area strip and extra turn. Pestilence makes allies apply Venom, then detonate it — Venom is the injury. Clinical Trial does not trigger Dual Attack.`;
+    case "boss-arunka":
+      return `${n} holds the front. Ferocious Stand forces single-target skills onto her. Area attacks ignore that.`;
+    case "lady-of-the-scales":
+      return `${n} puts Offering on the front: seventy percent of damage is shared there. When that ally dies, the team heals. Combat Readiness you push, she steals.`;
+    case "ambitious-tywin":
+      return `${n} is area Stun and soul removal. He does not strip. Rage makes Stun ignore Effect Resistance.`;
+    case "apocalypse-ravi":
+      return `${n} is a bruiser with injury on her basic attack. A kill with Soul Exchange revives one ally — anti-revive shuts that. This is not a Ruele reset.`;
+    case "spirit-eye-celine":
+      return `${n} revives all dead allies with Spirit Gate. One hit cannot exceed 70% Health. Anti-revive shuts the revive. She is not an evasion unit.`;
+    case "closer-charles":
+      return `${n} starts with evasion for one turn. After an ally hits a unit under 40% Health, he pushes Combat Readiness. Descent does not trigger counters.`;
+    case "politis":
+      return `${n} cuts Combat Readiness gain by half and clips buff duration when they use a non-attack skill. Starfall is Cannot Buff. She is not a soul lock.`;
+    case "lisette":
+      return `${n} is the reset. Dead allies return as Fragment of Life; Time Reversal rolls the fight back. Anti-revive shuts both.`;
+    case "designer-lilibet":
+      return `${n} converts your debuffs into Fighting Spirit, then self-cleanses and grants herself Immunity. Model Disqualification is area penetrate, not injury.`;
     default:
       break;
   }
@@ -914,8 +949,12 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
         h.tags.includes("injury"),
     )
   ) {
+    const violet = read.uniqueEffects.some((u) => u.heroId === "remnant-violet") ||
+      read.threats.some((t) => t.heroId === "remnant-violet");
     why.push(
-      "Area attacks, Dual Attacks, and injury do not miss the way a single-target third skill does.",
+      violet
+        ? "Area attacks, Dual Attacks, and injury do not miss the way a single-target third skill into Violet does."
+        : "Area attacks still hit everyone. The miss chance is +30% Evasion from Setsuka, not a Violet-style nest. Single-target injury still has to pass that roll.",
     );
   }
   if (read.watch.some((t) => t.key === "spec-tene")) {
@@ -1395,12 +1434,22 @@ function recipesFor(read: DefenseRead): Recipe[] {
   );
   if (sanctuary) {
     hit = hit.filter(
-      (r) => r.id !== "outspeed-cleave" && r.id !== "strip-control",
+      (r) =>
+        r.id !== "outspeed-cleave" &&
+        r.id !== "strip-control" &&
+        r.id !== "turn2-control" &&
+        r.id !== "evasion-bait",
     );
     if (!hit.some((r) => r.id === "injury-vs-stall")) {
       const injury = all.find((r) => r.id === "injury-vs-stall");
       if (injury) hit = [injury, ...hit];
     }
+  }
+  if (
+    read.roles.includes("soulblock") ||
+    read.uniqueEffects.some((u) => /shackles of suppression/i.test(u.name))
+  ) {
+    hit = hit.filter((r) => r.id !== "outspeed-cleave");
   }
   if (read.archetype === "injury-grind") {
     hit = hit.filter(

@@ -29,7 +29,7 @@ import {
   setMemberRole,
 } from "@/lib/e7/api";
 import { useCatalog } from "@/lib/e7/catalog";
-import { CLASS_LABEL, ELEMENT_LABEL } from "@/lib/e7/heroes";
+import { CLASS_LABEL, ELEMENT_LABEL, heroRarity } from "@/lib/e7/heroes";
 import { fileToHeroIcon } from "@/lib/e7/icon";
 import { isOwnerIdentity } from "@/lib/e7/owner";
 import { ARCHETYPE_META } from "@/lib/e7/recipes";
@@ -127,25 +127,54 @@ export function AdminView() {
 function HeroAdmin() {
   const heroes = useCatalog((s) => s.heroes);
   const [query, setQuery] = useState("");
+  const [star, setStar] = useState<0 | 3 | 4 | 5>(0);
   const [editing, setEditing] = useState<Hero | null>(null);
   const [iconHero, setIconHero] = useState<Hero | null>(null);
+  const starCounts = useMemo(() => {
+    const counts = { 3: 0, 4: 0, 5: 0 };
+    for (const h of heroes) counts[heroRarity(h)] += 1;
+    return counts;
+  }, [heroes]);
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const rows = q
+    let rows = q
       ? heroes.filter((h) => `${h.name} ${h.short} ${h.id}`.toLowerCase().includes(q))
       : heroes;
+    if (star) rows = rows.filter((h) => heroRarity(h) === star);
     return [...rows].sort(
       (a, b) => Number(Boolean(b.verified)) - Number(Boolean(a.verified)) || a.name.localeCompare(b.name),
     );
-  }, [heroes, query]);
+  }, [heroes, query, star]);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-end justify-between gap-3">
         <p className="font-mono text-sm tabular-nums text-muted-foreground">
-          {query ? `${list.length} of ${heroes.length}` : `${heroes.length} units`}
+          {query || star ? `${list.length} of ${heroes.length}` : `${heroes.length} units`}
           {` · ${heroes.filter((h) => h.verified).length} in-game verified`}
         </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            [0, "All", heroes.length],
+            [5, "5★", starCounts[5]],
+            [4, "4★", starCounts[4]],
+            [3, "3★", starCounts[3]],
+          ] as const
+        ).map(([id, label, count]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setStar(id)}
+            className={cn(
+              "h-10 shrink-0 rounded-full px-3 text-sm tabular-nums",
+              star === id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+            )}
+          >
+            {label} {count}
+          </button>
+        ))}
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search units…" className="sm:flex-1" />
@@ -158,6 +187,7 @@ function HeroAdmin() {
               element: "fire",
               class: "warrior",
               tier: "S",
+              rarity: 5,
               roles: [],
               tags: [],
               effects: [],
@@ -206,7 +236,7 @@ function HeroAdmin() {
                   {hero.verified
                     ? `In-game verified · ${formatInGameDate(hero.checkedAt)} · `
                     : ""}
-                  {hero.short} · {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]} · {hero.tier}
+                  {hero.short} · {heroRarity(hero)}★ · {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]} · {hero.tier}
                 </p>
               </div>
             </div>
@@ -417,6 +447,14 @@ function HeroForm({
         </Field>
         <Field label="Id">
           <Input value={form.id} disabled={!isNew} onChange={(e) => patch({ id: slugify(e.target.value) })} />
+        </Field>
+        <Field label="Rarity">
+          <NativeSelect
+            value={String(heroRarity(form))}
+            onChange={(v) => patch({ rarity: Number(v) as 3 | 4 | 5 })}
+            options={["5", "4", "3"]}
+            labels={{ "5": "5★", "4": "4★", "3": "3★" }}
+          />
         </Field>
         <Field label="Tier">
           <NativeSelect value={form.tier} onChange={(v) => patch({ tier: v as Hero["tier"] })} options={["SS", "S", "A", "B"]} />

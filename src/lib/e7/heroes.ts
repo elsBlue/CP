@@ -4065,6 +4065,18 @@ export const CLASS_LABEL: Record<Hero["class"], string> = {
   soulweaver: "Soul Weaver",
 };
 
+/** Natural star rarity. Catalog is 5★ unless listed here. */
+const RARITY_BELOW_FIVE: Record<string, 3 | 4> = {
+  "crimson-armin": 4,
+  "angel-of-light-angelica": 4,
+  "adventurer-ras": 4,
+};
+
+export function heroRarity(hero: Pick<Hero, "id" | "rarity">): 3 | 4 | 5 {
+  if (hero.rarity === 3 || hero.rarity === 4 || hero.rarity === 5) return hero.rarity;
+  return RARITY_BELOW_FIVE[hero.id] ?? 5;
+}
+
 export const TIER_ORDER: Record<Hero["tier"], number> = {
   SS: 4,
   S: 3,

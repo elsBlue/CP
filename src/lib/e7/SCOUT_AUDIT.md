@@ -11,6 +11,9 @@ Read this file before:
 - editing `jobFor`, `whyFor`, `pitfallsFor`, `wallThreats`, or recipe wincon/setup
 - adding a new verified unique that other copy might mention
 
+**Adding or verifying a hero?** Use [`VERIFY_HERO.md`](VERIFY_HERO.md) first.
+This file is only the copy pass on one filled card.
+
 Files: `engine.ts`, `threats.ts`, `recipes.ts`, verified kits in `heroes.ts`.
 
 **Never rewrite `engine.ts` (or recipes / threats / heroes) as a whole file.**

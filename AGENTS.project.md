@@ -22,6 +22,17 @@ truncated; restore from git before doing anything else.
 
 After touching those files, run `node scripts/guard-e7-core.mjs`.
 
+## Verify a hero
+
+**Before marking a unit in-game verified, or when the user sends Journal
+screenshots / “next hero”,** read
+[`src/lib/e7/VERIFY_HERO.md`](src/lib/e7/VERIFY_HERO.md) and run that
+checklist. Do **not** audit the whole matcher. Wall types stay at eight.
+
+Copy-grounding for Why / Setup / Breaks-if is still
+[`src/lib/e7/SCOUT_AUDIT.md`](src/lib/e7/SCOUT_AUDIT.md) — on **one** wall
+that includes the new hero, not the full catalog.
+
 ## Scout copy
 
 **Before auditing Scout output, recipes, or Why / Setup / Breaks-if copy,**
