@@ -184,65 +184,8 @@ async function ensureCatalog() {
       where id = ${h.id} and (effects is null or effects = '[]'::jsonb)
     `;
   }
-  const detailed = [
-    "lisette",
-    "new-moon-luna",
-    "harsetti",
-    "belian",
-    "last-rider-krau",
-    "ruele-of-light",
-    "dragon-bride-senya",
-    "fallen-cecilia",
-    "boss-arunka",
-    "empyrean-ilynav",
-    "remnant-violet",
-    "setsuka",
-    "briar-witch-iseria",
-    "lady-of-the-scales",
-    "conqueror-lilias",
-    "rinak",
-    "frieren",
-    "genesis-ras",
-    "blood-moon-haste",
-    "diene",
-    "shepherd-diene",
-    "solitaria",
-    "angel-of-light-angelica",
-    "sea-phantom-politis",
-    "politis",
-    "mort",
-    "hecate",
-    "apocalypse-ravi",
-    "urban-shadow-choux",
-    "lone-wolf-peira",
-    "straze",
-    "navy-captain-landy",
-    "spirit-eye-celine",
-    "ambitious-tywin",
-    "zahhak",
-    "ran",
-    "judge-kise",
-    "lone-crescent-bellona",
-    "dark-corvus",
-    "closer-charles",
-    "little-queen-charlotte",
-    "designer-lilibet",
-    "maid-chloe",
-    "faithless-lidica",
-    "specimen-sez",
-    "arbiter-vildred",
-    "twisted-eidolon-kayron",
-    "lionheart-cermia",
-    "architect-laika",
-    "sage-baal",
-    "monarch-of-the-sword-iseria",
-    "school-nurse-yulha",
-    "successor-taeyou",
-    "notos",
-  ];
-  for (const id of detailed) {
-    const hero = HEROES.find((h) => h.id === id);
-    if (!hero) continue;
+  for (const hero of HEROES) {
+    if (!hero.verified) continue;
     await sql`
       update heroes set
         roles = ${JSON.stringify(hero.roles)}::jsonb,
@@ -254,8 +197,8 @@ async function ensureCatalog() {
         kit = ${hero.kit},
         defense = ${hero.defense},
         offense = ${hero.offense},
-        verified = ${hero.verified ?? false},
-        checked_at = ${hero.verified ? (hero.checkedAt ?? todayStamp()) : null}
+        verified = true,
+        checked_at = ${hero.checkedAt ?? todayStamp()}
       where id = ${hero.id}
     `;
   }
