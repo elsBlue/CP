@@ -1,16 +1,18 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Info } from "lucide-react";
 import { toast } from "sonner";
 import { CounterCard } from "@/components/e7/counter-card";
 import { TeamSlots } from "@/components/e7/team-slots";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getHero, useCatalog } from "@/lib/e7/catalog";
 import { classifyDefense, recommendCounters } from "@/lib/e7/engine";
 import { suggestedVpDelta } from "@/lib/e7/ranks";
 import { ARCHETYPE_META } from "@/lib/e7/recipes";
 import { recordFor } from "@/lib/e7/stats";
 import { builtIds, useArenaStore } from "@/lib/e7/store";
-import { EFFECT_LABEL } from "@/lib/e7/types";
+import { EFFECT_LABEL, type CounterTeam } from "@/lib/e7/types";
 import { cn } from "@/lib/utils";
 
 export function ScoutView() {
@@ -42,26 +44,32 @@ export function ScoutView() {
     [enemyKey, poolKey, filled.length, recipes, heroes],
   );
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = counters.find((c) => c.recipeId === selectedId) ?? counters[0];
+  const [openIds, setOpenIds] = useState<string[]>([]);
   const [note, setNote] = useState("");
+  const [builtInfo, setBuiltInfo] = useState(false);
+  const [watchAll, setWatchAll] = useState(false);
 
-  function useTeam(id: string, heroIds: string[]) {
-    setSelectedId(id);
+  useEffect(() => {
+    setWatchAll(false);
+    setOpenIds([]);
+  }, [enemyKey]);
+
+  function toggleTeam(id: string, heroIds: string[]) {
+    setOpenIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
     setLastTeam(heroIds);
   }
 
-  function record(won: boolean) {
-    if (!selected || !read || filled.length < 4) return;
+  function record(team: CounterTeam, won: boolean) {
+    if (!read || filled.length < 4) return;
     const delta = suggestedVpDelta(won, vp);
     logMatch({
       enemy: filled,
-      team: selected.heroIds,
+      team: team.heroIds,
       won,
       vpDelta: delta,
       note,
-      recipeId: selected.recipeId,
-      recipeName: selected.name,
+      recipeId: team.recipeId,
+      recipeName: team.name,
       archetype: read.archetype,
     });
     setNote("");
@@ -86,28 +94,39 @@ export function ScoutView() {
           <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
             {read && meta
               ? meta.blurb
-              : "The wall is the four-hero defense you attack. Fill the slots — we name the type from their kits."}
+              : "The wall is the four-hero defense you attack. Fill the slots. We name the type from their kits."}
           </p>
           {read && meta ? (
             <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-              Counters on the right match this type from your built, in-game verified units. Won or Lost after the fight is what proves a recipe.
+              Counters use your built, in-game verified units. Won or Lost after the fight is what proves a recipe.
             </p>
           ) : null}
           {read && read.unverifiedIds.length > 0 ? (
             <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
               {read.unverifiedIds.length === 1 ? "One unit on this wall is" : `${read.unverifiedIds.length} units on this wall are`}{" "}
-              not in-game verified. We name the wall from the verified kits only.
+              not in-game verified. The wall type is named from verified kits only.
             </p>
           ) : null}
           {read && read.watch.length > 0 ? (
-            <ul className="mt-1 flex max-w-md flex-col gap-2">
-              {read.watch.map((item) => (
-                <li key={item.key} className="text-sm leading-relaxed">
-                  <span className="font-medium">{item.label}.</span>{" "}
-                  <span className="text-muted-foreground">{item.note}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-1 flex max-w-md flex-col gap-2">
+              <ul className="flex flex-col gap-2">
+                {(watchAll ? read.watch : read.watch.slice(0, 3)).map((item) => (
+                  <li key={item.key} className="text-sm leading-relaxed">
+                    <span className="font-medium">{item.label}.</span>{" "}
+                    <span className="text-muted-foreground">{item.note}</span>
+                  </li>
+                ))}
+              </ul>
+              {read.watch.length > 3 ? (
+                <button
+                  type="button"
+                  onClick={() => setWatchAll((v) => !v)}
+                  className="self-start text-sm font-medium text-foreground"
+                >
+                  {watchAll ? "Show less" : `View all (${read.watch.length})`}
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </header>
 
@@ -263,13 +282,25 @@ export function ScoutView() {
           ) : null}
         </div>
 
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
-          <div className="min-w-0">
+        <div className="flex h-10 items-center justify-between gap-3 rounded-xl bg-card px-3 shadow-[var(--shadow-border)]">
+          <div className="flex min-w-0 items-center gap-1">
             <p className="text-sm font-medium">Only built units</p>
-            <p className="text-sm text-muted-foreground">
-              On: fill from {builtVerified} built, in-game verified{" "}
-              {builtVerified === 1 ? "hero" : "heroes"}. Off: verified catalog (theory). Unverified kits stay out.
-            </p>
+            <Tooltip open={builtInfo} onOpenChange={setBuiltInfo}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="grid size-6 place-items-center rounded-full text-muted-foreground"
+                  aria-label="About only built units"
+                >
+                  <Info className="size-3.5" strokeWidth={1.75} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="start" className="max-w-[16rem] leading-relaxed">
+                On: fill from {builtVerified} built, in-game verified{" "}
+                {builtVerified === 1 ? "hero" : "heroes"}. Off: the verified catalog (theory). Unverified
+                kits stay out.
+              </TooltipContent>
+            </Tooltip>
           </div>
           <Switch checked={restrict} onCheckedChange={setRestrict} />
         </div>
@@ -290,21 +321,21 @@ export function ScoutView() {
             <CardContent className="p-5 text-sm leading-relaxed text-muted-foreground">
               {filled.length < 4
                 ? `Add ${4 - filled.length} more ${4 - filled.length === 1 ? "hero" : "heroes"} to the defense. Counters appear when all four slots are filled.`
-                : "No matching recipe for this wall yet. Try another defense, or turn off Only built units. Counters only use in-game verified kits."}
+                : "No matching recipe for this wall yet. Try another defense, or turn off Only built units. Counters use in-game verified kits only."}
             </CardContent>
           </Card>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 [overflow-anchor:none]">
             {counters.map((team) => (
               <CounterCard
                 key={team.recipeId}
                 team={team}
-                selected={selected?.recipeId === team.recipeId}
-                onSelect={() => useTeam(team.recipeId, team.heroIds)}
+                selected={openIds.includes(team.recipeId)}
+                onSelect={() => toggleTeam(team.recipeId, team.heroIds)}
                 record={recordFor(matches, team.recipeId)}
                 result={
-                  selected?.recipeId === team.recipeId && filled.length === 4
-                    ? { note, onNote: setNote, onRecord: record }
+                  openIds.includes(team.recipeId) && filled.length === 4
+                    ? { note, onNote: setNote, onRecord: (won) => record(team, won) }
                     : undefined
                 }
               />

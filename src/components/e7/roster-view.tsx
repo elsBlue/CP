@@ -39,56 +39,53 @@ export function RosterView() {
   }, [query, onlyBuilt, kit, roster, heroes]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="rise-in flex flex-col gap-2">
+    <div className="flex flex-col gap-4">
+      <header className="rise-in flex flex-col gap-1">
         <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
           Roster
         </p>
-        <h1 className="font-display text-3xl leading-[1.1] tracking-tight sm:text-4xl">
+        <h1 className="font-display text-2xl leading-[1.15] tracking-tight sm:text-3xl">
           Your roster
         </h1>
-        <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
-          Tap a hero to mark them as built — geared and ready to use. Scout fills
-          counters from in-game verified kits on this list.
+        <p className="max-w-lg text-sm text-muted-foreground">
+          Tap to mark built. Scout uses verified kits you have built.
         </p>
       </header>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-4 gap-1.5">
         <StatChip label="Built" value={String(built.length)} />
-        <StatChip label="Scout-ready" value={`${builtVerified}`} hint="built + verified" />
-        <StatChip label="In-game verified" value={`${verifiedN}`} hint={`of ${heroes.length} units`} />
-        <StatChip label="Kit pending" value={String(heroes.length - verifiedN)} hint="not checked yet" />
+        <StatChip label="Ready" value={String(builtVerified)} />
+        <StatChip label="Verified" value={String(verifiedN)} />
+        <StatChip label="Pending" value={String(heroes.length - verifiedN)} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap gap-2 sm:ml-auto">
-          <Button size="sm" variant="secondary" onClick={() => loadPresetRoster("challenger")}>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button size="sm" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => loadPresetRoster("challenger")}>
             Full kit
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => loadPresetRoster("starter")}>
+          <Button size="sm" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => loadPresetRoster("starter")}>
             Starter
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => loadPresetRoster("clear")}>
+          <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => loadPresetRoster("clear")}>
             Clear
           </Button>
         </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search heroes…"
+          className="h-10"
         />
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           <ToggleChip on={onlyBuilt} onClick={() => setOnlyBuilt((v) => !v)}>
             Built only
           </ToggleChip>
           {(
             [
-              ["all", "All kits"],
-              ["verified", "In-game verified"],
-              ["pending", "Kit pending"],
+              ["all", "All"],
+              ["verified", "Verified"],
+              ["pending", "Pending"],
             ] as const
           ).map(([id, label]) => (
             <ToggleChip key={id} on={kit === id} onClick={() => setKit(id)}>
@@ -139,12 +136,11 @@ export function RosterView() {
   );
 }
 
-function StatChip({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function StatChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-card px-3 py-2.5 shadow-[var(--shadow-border)]">
-      <p className="text-xs tracking-wide text-muted-foreground uppercase">{label}</p>
-      <p className="font-mono text-lg tabular-nums">{value}</p>
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+    <div className="rounded-lg bg-card px-2 py-1.5 shadow-[var(--shadow-border)]">
+      <p className="text-[10px] tracking-wide text-muted-foreground uppercase">{label}</p>
+      <p className="font-mono text-base tabular-nums leading-tight">{value}</p>
     </div>
   );
 }
@@ -163,7 +159,7 @@ function ToggleChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "h-11 shrink-0 rounded-md px-4 text-sm shadow-[var(--shadow-border)]",
+        "h-8 shrink-0 rounded-md px-2.5 text-xs shadow-[var(--shadow-border)]",
         on ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
       )}
     >

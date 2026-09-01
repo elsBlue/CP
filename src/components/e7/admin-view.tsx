@@ -89,22 +89,6 @@ export function AdminView() {
           Units, strategies, and wall presets are shared. Progress stays private.
         </p>
         <p className="font-mono text-sm tabular-nums text-muted-foreground">{unitCount} units</p>
-        <ol className="mt-2 max-w-lg list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground">
-          <li>
-            Meta defense units first: set <span className="text-foreground">Roles</span> (revive, strip,
-            speedcap, soulblock, evasion, bruiser) and <span className="text-foreground">Tags</span>{" "}
-            (injury, evade, anti-revive). Scout only types the wall from these.
-          </li>
-          <li>
-            Then Unique / Buffs / Debuffs on those same units. That is Scout info, not a new wall type
-            — except Harsetti, Belian, and Lisette revive.
-          </li>
-          <li>Tap a unit portrait to set its icon. That save does not touch kit data.</li>
-          <li>
-            Hold new recipes until about eight walls are tagged that way. Then one strategy per wall
-            type, slots from units people actually build.
-          </li>
-        </ol>
       </header>
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
         {(

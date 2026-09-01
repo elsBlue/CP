@@ -38,6 +38,7 @@ export function HeroPicker({
   const [picked, setPicked] = useState<string[]>([]);
   const [wide, setWide] = useState(false);
   const heroes = useCatalog((s) => s.heroes);
+  const verified = useMemo(() => heroes.filter((h) => h.verified), [heroes]);
   const takenSet = useMemo(() => new Set(taken), [taken]);
   const canMulti = maxSelect > 1;
   const mode = canMulti && multi;
@@ -55,18 +56,16 @@ export function HeroPicker({
   }, [query, canMulti]);
 
   const list = useMemo(() => {
-    let pool = searchHeroes(query, heroes);
+    let pool = searchHeroes(query, verified);
     if (els.length) pool = pool.filter((h) => els.includes(h.element));
     if (cls.length) pool = pool.filter((h) => h.class && cls.includes(h.class));
-    return [...pool].sort(
-      (a, b) => Number(Boolean(b.verified)) - Number(Boolean(a.verified)) || a.name.localeCompare(b.name),
-    );
-  }, [query, els, cls, heroes]);
+    return [...pool].sort((a, b) => a.name.localeCompare(b.name));
+  }, [query, els, cls, verified]);
 
   const suggestions = useMemo(() => {
     if (searchTokens(query).length < 2) return [];
-    return bestHeroMatches(query, heroes).filter((h) => !takenSet.has(h.id)).slice(0, maxSelect);
-  }, [query, heroes, takenSet, maxSelect]);
+    return bestHeroMatches(query, verified).filter((h) => !takenSet.has(h.id)).slice(0, maxSelect);
+  }, [query, verified, takenSet, maxSelect]);
 
   const filterCount = els.length + cls.length;
 
@@ -114,7 +113,7 @@ export function HeroPicker({
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
-            Type names separated by commas. In-game verified kits first.
+            Only in-game verified kits. Type names separated by commas.
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-3 px-5 pb-3">

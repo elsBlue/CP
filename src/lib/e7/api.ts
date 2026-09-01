@@ -218,6 +218,27 @@ async function ensureCatalog() {
     "straze",
     "navy-captain-landy",
     "spirit-eye-celine",
+    "ambitious-tywin",
+    "zahhak",
+    "ran",
+    "judge-kise",
+    "lone-crescent-bellona",
+    "dark-corvus",
+    "closer-charles",
+    "little-queen-charlotte",
+    "designer-lilibet",
+    "maid-chloe",
+    "faithless-lidica",
+    "specimen-sez",
+    "arbiter-vildred",
+    "twisted-eidolon-kayron",
+    "lionheart-cermia",
+    "architect-laika",
+    "sage-baal",
+    "monarch-of-the-sword-iseria",
+    "school-nurse-yulha",
+    "successor-taeyou",
+    "notos",
   ];
   for (const id of detailed) {
     const hero = HEROES.find((h) => h.id === id);
@@ -236,6 +257,20 @@ async function ensureCatalog() {
         verified = ${hero.verified ?? false},
         checked_at = ${hero.verified ? (hero.checkedAt ?? todayStamp()) : null}
       where id = ${hero.id}
+    `;
+  }
+  for (const h of HEROES) {
+    if (h.verified) continue;
+    await sql`
+      update heroes set
+        roles = '[]'::jsonb,
+        tags = '[]'::jsonb,
+        effects = '[]'::jsonb,
+        buffs = '[]'::jsonb,
+        debuffs = '[]'::jsonb,
+        unique_effects = '[]'::jsonb,
+        kit = ''
+      where id = ${h.id} and verified = false
     `;
   }
   // Seed once. Never overwrite admin / generated recipes (source != seed).
