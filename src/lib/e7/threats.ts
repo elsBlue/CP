@@ -1,3 +1,8 @@
+/**
+ * Wall watches. Accumulated — never rewrite this file as a whole.
+ * Targeted search-replace of a unique nearby block only.
+ * Floor: stay above 400 lines.
+ */
 import { heroEffects } from "./effects";
 import type { Hero, NormalEffect, Role, Tag } from "./types";
 
@@ -43,6 +48,24 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       label: "Soul lock",
       note: "No souls. Play this fight without Soulburn.",
     });
+  } else if (
+    hasUnique(heroes, "unwavering execution") ||
+    ids.has("disciplinary-prefect-aria")
+  ) {
+    add({
+      key: "dp-aria",
+      label: "DP Aria",
+      note: "Enemy Soulburn costs double. Souls still generate. This is not Belian. Disciplinary Action injuries while Purge is on cooldown.",
+      answerTags: ["injury"],
+    });
+  }
+  if (hasUnique(heroes, "dragon flame") || ids.has("martial-artist-ken")) {
+    add({
+      key: "ma-ken",
+      label: "MA Ken",
+      note: "Counters ally crits, and Dragon Flame when he is crit (50% penetrate, lost Health). Mort and Star's Blessing turn those counters off.",
+      answerTags: ["aoe"],
+    });
   }
   if (
     roles.has("revive") ||
@@ -73,7 +96,8 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
   if (
     heroes.some((h) => (h.uniqueEffects ?? []).some((u) => /^skill nullifier$/i.test(u.name))) ||
     ids.has("fallen-cecilia") ||
-    ids.has("angel-of-light-angelica")
+    ids.has("angel-of-light-angelica") ||
+    ids.has("eternal-wanderer-ludwig")
   ) {
     add({
       key: "nullifier",
@@ -127,6 +151,19 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       note: "New buffs will not land. This is not Seal — passives still run.",
     });
   }
+  if (
+    (hasUnique(heroes, "cascade") ||
+      hasUnique(heroes, "lullaby for waves") ||
+      ids.has("dragon-king-sharun")) &&
+    !ids.has("notos") &&
+    !hasUnique(heroes, "sanctuary of battle")
+  ) {
+    add({
+      key: "cascade",
+      label: "Cascade",
+      note: "Do not Stun, Sleep, or Fear this wall. That cleanses the lock and grants Cascade: 4,000 extra damage on their next attack.",
+    });
+  }
   if (hasUnique(heroes, "ferocious stand")) {
     add({
       key: "force-target",
@@ -142,6 +179,45 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       note: "Undispellable. Debuffs do not stick on her.",
     });
   }
+  if (hasUnique(heroes, "insight") || ids.has("sylvan-sage-vivian")) {
+    add({
+      key: "ss-vivian",
+      label: "SS Vivian",
+      note: "Starts at full Focus: immune to debuffs. A hit of 30% max Health spends 1 Focus for 50% damage reduction. This is not the Immunity buff — strip does not turn it off.",
+      answerTags: ["injury", "aoe"],
+    });
+  }
+  if (
+    hasUnique(heroes, "barrier inversion") ||
+    hasUnique(heroes, "desert storm") ||
+    ids.has("desert-jewel-basar")
+  ) {
+    add({
+      key: "dj-basar",
+      label: "DJ Basar",
+      note: "Team Immunity and a full cleanse. Desert Storm strips two and inverts Barrier into damage. Extra turn only if a target has Barrier. Do not put Barrier on this wall.",
+      answerTags: ["strip"],
+    });
+  }
+  if (
+    hasUnique(heroes, "shield of holy spirit") ||
+    ids.has("crimson-armin")
+  ) {
+    add({
+      key: "c-armin",
+      label: "C.Armin",
+      note: "Team Immunity 2 turns and Invincible 1 turn. Strip before that window, or wait it out. She does not cleanse.",
+      answerTags: ["strip"],
+    });
+  }
+  if (hasUnique(heroes, "divine vessel") || ids.has("bystander-hwayoung")) {
+    add({
+      key: "b-hwayoung",
+      label: "ML Hwayoung",
+      note: "Immune to buffs and debuffs. Strip does not apply. A 40% hit on an ally fires Sura at a random enemy: ignore share, ignore damage reduction, Extinction on a kill.",
+      answerTags: ["aoe", "injury"],
+    });
+  }
   if (hasUnique(heroes, "demon blade")) {
     add({
       key: "cannot-die",
@@ -155,6 +231,46 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       key: "beguile",
       label: "Beguile",
       note: "After her strip, the back line takes 10% of maximum Health.",
+    });
+  }
+  if (
+    (hasDebuff("Block") ||
+      hasUnique(heroes, "mirror of the abyss") ||
+      ids.has("witch-of-the-mere-tenebria")) &&
+    !ids.has("notos") &&
+    !hasUnique(heroes, "sanctuary of battle")
+  ) {
+    add({
+      key: "block",
+      label: "Block",
+      note: "After the strip, Block: you cannot receive buffs, and other heroes cannot cleanse you. Not Seal — passives still run. The random Stun, Sleep, or Redirected Provoke is not guaranteed.",
+    });
+    add({
+      key: "wmeri",
+      label: "WMeri Dual Attack",
+      note: "While Mirror of the Abyss is on cooldown, her basic attack Dual Attacks from their highest-Attack ally.",
+    });
+  }
+  if (
+    (hasDebuff("Restrict") || hasUnique(heroes, "restrict")) &&
+    !ids.has("notos") &&
+    !hasUnique(heroes, "sanctuary of battle")
+  ) {
+    add({
+      key: "restrict",
+      label: "Restrict",
+      note: "Combat Readiness push other than Speed does not apply.",
+    });
+  }
+  if (
+    (hasDebuff("Rupture") || hasUnique(heroes, "rupture")) &&
+    !ids.has("notos") &&
+    !hasUnique(heroes, "sanctuary of battle")
+  ) {
+    add({
+      key: "rupture",
+      label: "Rupture",
+      note: "Attacking a Ruptured hero deals extra damage back, proportional to maximum Health.",
     });
   }
   if (hasUnique(heroes, "witch's curse") || ids.has("briar-witch-iseria") || hasUnique(heroes, "death's dominion") || ids.has("hecate")) {
@@ -367,6 +483,19 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       note: "Area Stun. Removes souls. Does not strip.",
     });
   }
+  if (
+    (hasUnique(heroes, "meteor fall") ||
+      hasUnique(heroes, "flame of savara") ||
+      ids.has("silver-blade-aramintha")) &&
+    !ids.has("notos") &&
+    !hasUnique(heroes, "sanctuary of battle")
+  ) {
+    add({
+      key: "sb-ara",
+      label: "SB Ara",
+      note: "Meteor Fall is area Stun and two Burns, then −30% Combat Readiness on the highest bar. Flame Release is an extra attack, not Dual Attack.",
+    });
+  }
   if (ids.has("zahhak") || heroes.some((h) => h.id === "zahhak" && h.tags.includes("injury"))) {
     add({
       key: "zahhak",
@@ -380,12 +509,46 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       label: "No counters",
       note: "Nobody else can counter. Immune to Stun, Sleep, and Fear.",
     });
+  } else if (
+    (hasUnique(heroes, "star's blessing") ||
+      hasUnique(heroes, "disciple of the stars") ||
+      ids.has("astromancer-elena")) &&
+    !ids.has("notos") &&
+    !hasUnique(heroes, "sanctuary of battle")
+  ) {
+    add({
+      key: "a-elena",
+      label: "A.Elena",
+      note: "While Star's Blessing is up, you cannot counter. She starts the fight with it for one turn. This is not Mort.",
+    });
+  }
+  if (
+    hasDebuff("Unhealable") &&
+    !ids.has("notos") &&
+    !hasUnique(heroes, "sanctuary of battle")
+  ) {
+    add({
+      key: "unhealable",
+      label: "Unhealable",
+      note: "Heals do not land on afflicted heroes.",
+    });
+  }
+  if (
+    hasUnique(heroes, "begone") ||
+    hasUnique(heroes, "obstacle elimination") ||
+    ids.has("commander-pavel")
+  ) {
+    add({
+      key: "c-pavel",
+      label: "C.Pavel",
+      note: "Ally crits charge Begone: area gunfire, then a full Combat Readiness bar. Extra attacks, counters, and Dual Attacks do not charge it. His third skill ignores damage sharing on heroes.",
+    });
   }
   if (hasDebuff("Sleep") && !ids.has("notos") && !hasUnique(heroes, "sanctuary of battle")) {
     add({
       key: "sleep",
       label: "Sleep",
-      note: "Cannot act. Evasion is reduced to zero until they take a hit.",
+      note: "They can Sleep a unit. That unit cannot act, and its Evasion drops to zero until it takes a hit.",
     });
   }
   if (hasDebuff("Target")) {
@@ -436,11 +599,62 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       answerEffects: ["extinction"],
     });
   }
-  if (hasDebuff("Collapse") || hasUnique(heroes, "collapse")) {
+  if (hasDebuff("Collapse") || hasUnique(heroes, "collapse") || ids.has("salome")) {
     add({
       key: "collapse",
       label: "Collapse",
-      note: "−50% maximum Health on heroes. Injury cores get the rest for free.",
+      note: "−50% maximum Health on heroes. This is not injury stacking. Injury cores get the rest for free.",
+    });
+  }
+  if (hasUnique(heroes, "clone") || ids.has("salome")) {
+    add({
+      key: "salome",
+      label: "Salome",
+      note: "Self Skill Nullifier, then Clone a target for one turn, then an extra turn. Dual Attack comes from the highest Attack ally. Dispelling Clone also removes unique effects she copied.",
+      answerTags: ["strip"],
+    });
+  }
+  if (hasUnique(heroes, "inner abyss") || ids.has("abyssal-yufine")) {
+    add({
+      key: "a-yufine",
+      label: "A.Yufine",
+      note: "AoE strip and −50% Combat Readiness, ignores Effect Resistance. Enemy Combat Readiness increases are reduced by 30% — this is not a Speed cap. 30% counter when hit. Trauma is on herself.",
+    });
+  }
+  if (hasUnique(heroes, "bind") || ids.has("rhianna-and-luciella")) {
+    add({
+      key: "rnl",
+      label: "R&L",
+      note: "Rhianna strips two and inflicts Bind: no extra skills, counters, or Dual Attacks off-turn. After the third skill, Afterdream is 70% evasion for the rest of the fight. Extra attacks are not Dual Attack.",
+      answerTags: ["aoe", "injury"],
+    });
+  }
+  if (hasUnique(heroes, "lua squad") || ids.has("hellion-lua")) {
+    add({
+      key: "h-lua",
+      label: "H.Lua",
+      note: "A Hero hitting her: team +7% Combat Readiness and every ally with Challenge counters. Mort and Star's Blessing turn those counters off. Lua's Challenge is buff duration −1, not a strip.",
+    });
+  }
+  if (hasUnique(heroes, "obliterate") || ids.has("operator-sigret")) {
+    add({
+      key: "o-sigret",
+      label: "O.Sigret",
+      note: "AoE Combat Readiness −30% and buff duration −1 (not a strip). Extra turn only if Annihilation kills. Ignores Effect Resistance if the target has Barrier.",
+    });
+  }
+  if (ids.has("pirate-captain-flan")) {
+    add({
+      key: "pc-flan",
+      label: "PC Flan",
+      note: "Hunt fires after an ally hits a target with no buffs: team Swift Attack and Combat Readiness. Full Burst steals one, then delayed Bomb. Bomb stun ignores Effect Resistance after two turns. This is not an opener stun.",
+    });
+  }
+  if (hasUnique(heroes, "death sentence") || ids.has("ainz-ooal-gown")) {
+    add({
+      key: "ainz",
+      label: "Ainz",
+      note: "Strip all, then Silence. Death Sentence is 50,000 at the 12th turn, ignores damage sharing, and falls off if he dies. Mana Barrier is 25% on ally hit — not a counter nest. Extra turn is Soulburn only. 25% Stun is not a stun wall.",
     });
   }
   if (hasUnique(heroes, "grudge") || hasUnique(heroes, "blood aura")) {
@@ -450,6 +664,63 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       note: "First death: team Immunity. A kill with his third skill revives everyone.",
       answerTags: ["anti-revive"],
       answerEffects: ["extinction"],
+    });
+  }
+  if (hasUnique(heroes, "can you handle this") || ids.has("eternal-wanderer-ludwig")) {
+    add({
+      key: "ew-ludwig",
+      label: "EW Ludwig",
+      note: "Any Soulburn pushes his Combat Readiness and stacks penetrate on the third skill. Extra turn is Soulburn only. Self Skill Nullifier eats one skill.",
+    });
+  }
+  if (hasUnique(heroes, "boundless obsession") || ids.has("requiem-roana")) {
+    add({
+      key: "rq-roana",
+      label: "RQ Roana",
+      note: "Combat Readiness from Speed is halved — this is not a Speed cap. She jumps 70% Combat Readiness when the front ally takes a turn. Eternal Lament is area strip, cooldown +1, and Combat Readiness −30%.",
+    });
+  }
+  if (hasUnique(heroes, "illusion") || ids.has("specter-tenebria")) {
+    add({
+      key: "spec-tene",
+      label: "Spec Tene",
+      note: "Cannot be selected as a skill target while an ally lives. AoE still hits her. Endless Nightmare is a guaranteed stun. Poison Blast does not trigger counters. Extra turn is Soulburn only.",
+      answerTags: ["aoe"],
+    });
+  }
+  if (hasUnique(heroes, "engulf") || ids.has("tidal-rift-elvira")) {
+    add({
+      key: "tr-elvira",
+      label: "TR Elvira",
+      note: "Engulf is 100% Effectiveness and Crit Hit Resistance — not Immunity. Killing her grants Cascade to her team (4,000 extra on their next attack). 75% Seal. Twisted Strike extra attack is not Dual Attack.",
+    });
+  }
+  if (hasUnique(heroes, "victory pose") || ids.has("top-model-luluca")) {
+    add({
+      key: "tm-lulu",
+      label: "TM Lulu",
+      note: "Victory Pose is team Combat Readiness plus extra turn. Demolish is extinction only if it kills, then Stealth and Barrier. Energy Blast ignores damage sharing versus Heroes. Extra attack is not Dual Attack.",
+    });
+  }
+  if (hasUnique(heroes, "deify") || ids.has("zio")) {
+    add({
+      key: "zio",
+      label: "Zio",
+      note: "Strip two, then Silence and Combat Readiness −30%. Deify: extra attack on S1 (not Dual Attack) and 50% damage reduction when hit. Supreme Authority is not a Speed cap.",
+    });
+  }
+  if (hasUnique(heroes, "nature restoration") || ids.has("mediator-kawerik")) {
+    add({
+      key: "ml-kawerik",
+      label: "ML Kawerik",
+      note: "Strip all, then team Barrier. Nature Restoration is team cleanse, Increase Attack, and Immunity. Barrier is not Barrier Inversion. Debuff duration −1 is not a strip.",
+    });
+  }
+  if (hasUnique(heroes, "pestilence") || ids.has("death-dealer-ray")) {
+    add({
+      key: "dd-ray",
+      label: "DD Ray",
+      note: "Cloud of Death is area strip two, then Sleep, Venom, and extra turn. Pestilence makes allies apply Venom and detonate it — that is the injury. Clinical Trial does not trigger Dual Attack. Sleep is not a stun wall.",
     });
   }
   if (hasUnique(heroes, "dark moon") || hasUnique(heroes, "noias") || ids.has("shepherd-diene")) {
@@ -493,21 +764,53 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     speedcap: 0,
     notos: 1,
     evade: 2,
+    rnl: 2,
     revive: 3,
     injury: 4,
     soulblock: 5,
+    "dp-aria": 5,
+    "ma-ken": 13,
+    "h-lua": 13,
+    "o-sigret": 14,
+    "pc-flan": 14,
+    ainz: 9,
     "force-target": 6,
     offering: 7,
     nullifier: 8,
+    collapse: 8,
+    salome: 8,
+    "a-yufine": 11,
+    block: 8,
     "cannot-die": 9,
     "both-revive": 10,
+    oath: 10,
+    "ss-vivian": 10,
+    "dj-basar": 11,
+    "c-armin": 11,
+    "b-hwayoung": 9,
     strip: 11,
+    cascade: 11,
     reversal: 12,
     "no-counter": 13,
+    "a-elena": 13,
+    unhealable: 21,
+    "c-pavel": 23,
+    "sb-ara": 24,
     "dark-moon": 14,
+    "ew-ludwig": 14,
+    "rq-roana": 11,
+    "spec-tene": 8,
+    "tr-elvira": 8,
+    "tm-lulu": 12,
+    zio: 9,
+    "ml-kawerik": 10,
+    "dd-ray": 8,
     miseria: 15,
     "sn-yulha": 16,
     "s-taeyou": 17,
+    restrict: 18,
+    wmeri: 19,
+    rupture: 22,
   };
   return out.sort((a, b) => (rank[a.key] ?? 40) - (rank[b.key] ?? 40));
 }

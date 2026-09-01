@@ -45,7 +45,6 @@ export function ScoutView() {
   );
 
   const [openIds, setOpenIds] = useState<string[]>([]);
-  const [note, setNote] = useState("");
   const [builtInfo, setBuiltInfo] = useState(false);
   const [watchAll, setWatchAll] = useState(false);
 
@@ -59,7 +58,7 @@ export function ScoutView() {
     setLastTeam(heroIds);
   }
 
-  function record(team: CounterTeam, won: boolean) {
+  function record(team: CounterTeam, won: boolean, note: string) {
     if (!read || filled.length < 4) return;
     const delta = suggestedVpDelta(won, vp);
     logMatch({
@@ -72,7 +71,6 @@ export function ScoutView() {
       recipeName: team.name,
       archetype: read.archetype,
     });
-    setNote("");
     toast(won ? `Win saved · ${delta > 0 ? "+" : ""}${delta} VP` : `Loss saved · ${delta} VP`);
   }
 
@@ -334,8 +332,8 @@ export function ScoutView() {
                 onSelect={() => toggleTeam(team.recipeId, team.heroIds)}
                 record={recordFor(matches, team.recipeId)}
                 result={
-                  openIds.includes(team.recipeId) && filled.length === 4
-                    ? { note, onNote: setNote, onRecord: (won) => record(team, won) }
+                  filled.length === 4
+                    ? { onRecord: (won, note) => record(team, won, note) }
                     : undefined
                 }
               />

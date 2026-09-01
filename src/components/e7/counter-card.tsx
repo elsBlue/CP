@@ -1,11 +1,10 @@
 import { useRef, useState } from "react";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown, Info, Pencil } from "lucide-react";
 import { HeroRow } from "@/components/e7/hero-line";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { winRate } from "@/lib/e7/stats";
 import type { CounterTeam } from "@/lib/e7/types";
@@ -23,14 +22,14 @@ export function CounterCard({
   onSelect: () => void;
   record?: { n: number; wins: number };
   result?: {
-    note: string;
-    onNote: (value: string) => void;
-    onRecord: (won: boolean) => void;
+    onRecord: (won: boolean, note: string) => void;
   };
 }) {
   const slots = Math.round(team.coverage * 4);
   const rate = record ? winRate(record.wins, record.n) : null;
   const [gapInfo, setGapInfo] = useState<string | null>(null);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [note, setNote] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
 
   function toggle() {
@@ -46,6 +45,12 @@ export function CounterCard({
       pin();
       requestAnimationFrame(pin);
     });
+  }
+
+  function save(won: boolean) {
+    result?.onRecord(won, note.trim());
+    setNote("");
+    setNoteOpen(false);
   }
 
   return (
@@ -98,7 +103,7 @@ export function CounterCard({
           <HeroRow ids={team.heroIds} />
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-1.5 px-4 pb-4 sm:px-5">
+      <div className="flex flex-wrap items-center gap-1.5 px-4 sm:px-5">
         {team.theorycraft ? (
           <Badge variant="outline">Catalog</Badge>
         ) : (
@@ -138,6 +143,50 @@ export function CounterCard({
           </Badge>
         ) : null}
       </div>
+      {result ? (
+        <div
+          className="flex flex-col gap-2 px-4 pt-3 pb-4 sm:px-5"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => save(true)}
+              className="h-9 flex-1 rounded-md bg-win text-sm font-medium text-background [-webkit-tap-highlight-color:transparent] active:scale-[0.96]"
+            >
+              Won
+            </button>
+            <button
+              type="button"
+              onClick={() => save(false)}
+              className="h-9 flex-1 rounded-md bg-loss text-sm font-medium text-background [-webkit-tap-highlight-color:transparent] active:scale-[0.96]"
+            >
+              Lost
+            </button>
+            <Button
+              type="button"
+              variant={noteOpen ? "secondary" : "ghost"}
+              size="icon-sm"
+              aria-label={noteOpen ? "Hide note" : "Add a note"}
+              aria-pressed={noteOpen}
+              onClick={() => setNoteOpen((v) => !v)}
+            >
+              <Pencil strokeWidth={1.75} />
+            </Button>
+          </div>
+          {noteOpen ? (
+            <Input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Note (optional)"
+              aria-label="Match note"
+            />
+          ) : null}
+        </div>
+      ) : (
+        <div className="h-4" />
+      )}
       <div className="counter-fold" data-open={selected ? "true" : "false"}>
         <div>
           <CardContent className="flex flex-col gap-4 border-t border-border px-4 pt-4 pb-5 sm:px-5">
@@ -154,28 +203,6 @@ export function CounterCard({
                     </li>
                   ))}
                 </ul>
-              </div>
-            ) : null}
-            {result ? (
-              <div className="flex flex-col gap-3">
-                <div className="flex items-baseline justify-between gap-2">
-                  <Label htmlFor={`match-note-${team.recipeId}`}>After the fight</Label>
-                  <span className="text-sm text-muted-foreground">Saved to your account</span>
-                </div>
-                <Input
-                  id={`match-note-${team.recipeId}`}
-                  value={result.note}
-                  onChange={(e) => result.onNote(e.target.value)}
-                  placeholder="Optional note"
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <Button className="h-12" onClick={() => result.onRecord(true)}>
-                    Won
-                  </Button>
-                  <Button className="h-12" variant="secondary" onClick={() => result.onRecord(false)}>
-                    Lost
-                  </Button>
-                </div>
               </div>
             ) : null}
             <Block label="Setup" text={team.setup} />

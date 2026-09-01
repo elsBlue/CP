@@ -1,3 +1,9 @@
+/**
+ * Crownpath scout matcher. Accumulated — never rewrite this file as a whole.
+ * Targeted search-replace of a unique nearby block only.
+ * If a replace fails, re-read the function and retry a smaller patch.
+ * Floor: stay above 1000 lines. Shorter means truncated — restore from git.
+ */
 import { allHeroes, allRecipes, getHero } from "./catalog";
 import { heroEffects } from "./effects";
 import { TIER_ORDER } from "./heroes";
@@ -74,7 +80,9 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
         h.id === "zahhak" ||
         h.id === "lone-crescent-bellona" ||
         h.id === "twisted-eidolon-kayron" ||
-        h.id === "monarch-of-the-sword-iseria",
+        h.id === "monarch-of-the-sword-iseria" ||
+        h.id === "disciplinary-prefect-aria" ||
+        h.id === "death-dealer-ray",
     ).length;
     const injuryN = trusted.filter(
       (h) =>
@@ -103,7 +111,8 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
       (h) =>
         (h.tags.includes("evade") || h.roles.includes("evasion")) &&
         h.id !== "lone-crescent-bellona" &&
-        h.id !== "lone-wolf-peira",
+        h.id !== "lone-wolf-peira" &&
+        h.id !== "rhianna-and-luciella",
     ).length;
     if (evadeCore > 0)
       scores["evasion-counter"] += 6 + (evadeCore > 1 ? 3 : 0);
@@ -142,9 +151,22 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
       idSet.has("ambitious-tywin") ||
       idSet.has("sage-baal") ||
       idSet.has("architect-laika") ||
-      idSet.has("successor-taeyou")
+      idSet.has("successor-taeyou") ||
+      idSet.has("witch-of-the-mere-tenebria") ||
+      idSet.has("abyssal-yufine") ||
+      idSet.has("requiem-roana")
     ) {
       scores["turn2-control"] += 3;
+    }
+    if (
+      idSet.has("ainz-ooal-gown") ||
+      idSet.has("specter-tenebria") ||
+      uniqueEffects.some((u) =>
+        /illusion|death sentence|boundless obsession/i.test(u.name),
+      )
+    ) {
+      scores["turn2-control"] += 5;
+      scores["speed-cleave"] -= 3;
     }
     if (
       idSet.has("last-rider-krau") &&
@@ -233,6 +255,7 @@ function slotScore(
   hero: Hero,
   need: SlotNeed,
   wall?: { offering?: boolean },
+  used?: Set<string>,
 ): number {
   let score = 0;
   if (!hero.verified) score -= 20;
@@ -249,6 +272,22 @@ function slotScore(
       need.label === "Wincon")
   ) {
     score += 8;
+  }
+  const curse = new Set(["briar-witch-iseria", "hecate"]);
+  const revive = new Set([
+    "ruele-of-light",
+    "school-nurse-yulha",
+    "maid-chloe",
+    "arbiter-vildred",
+    "lisette",
+  ]);
+  const picked = used ?? new Set<string>();
+  const curseOn =
+    curse.has(hero.id) || [...picked].some((id) => curse.has(id));
+  const reviveOn =
+    revive.has(hero.id) || [...picked].some((id) => revive.has(id));
+  if (curseOn && reviveOn && (curse.has(hero.id) || revive.has(hero.id))) {
+    score -= 14;
   }
   score += TIER_ORDER[hero.tier];
   score += hero.offense * 0.15;
@@ -279,7 +318,7 @@ function fillRecipe(
     let bestScore = 0;
     for (const hero of pool) {
       if (used.has(hero.id) || enemy.has(hero.id)) continue;
-      const s = slotScore(hero, need, { offering });
+      const s = slotScore(hero, need, { offering }, used);
       if (s > bestScore) {
         best = hero;
         bestScore = s;
@@ -317,7 +356,12 @@ function fillRecipe(
 function jobFor(
   hero: Hero,
   label: string,
-  ctx?: { sanctuary?: boolean; wallRevive?: boolean; wallCounters?: boolean },
+  ctx?: {
+    sanctuary?: boolean;
+    wallRevive?: boolean;
+    wallCounters?: boolean;
+    wallSoulblock?: boolean;
+  },
 ): string {
   const n = hero.name;
   switch (hero.id) {
@@ -332,13 +376,15 @@ function jobFor(
     case "monarch-of-the-sword-iseria":
       return `${n} injuries on Sword of Duty (her counter) and on Dawnbreaker. Fracture stacks Attack on her. Doubled counters also fire the foremost ally.`;
     case "zahhak":
-      return `${n} is single-target injury after an extra turn. If Arunka is on the wall, he has to hit her.`;
+      return `${n} is single-target injury after an extra turn.`;
     case "new-moon-luna":
       return `${n} is area injury and a strip. She also starts with Skill Nullifier.`;
     case "last-rider-krau":
       return ctx?.sanctuary
         ? `${n} holds the front.`
         : `${n} holds the front and can grant the team Immunity.`;
+    case "crimson-armin":
+      return `${n} grants the team Immunity and Invincible for one cycle. She does not cleanse. Provoke is her basic attack.`;
     case "dragon-bride-senya":
       return `${n} holds the front. Oath of Punishment does not strip off.`;
     case "notos":
@@ -361,7 +407,14 @@ function jobFor(
       return `${n} is sustain and a strip. A kill with Moon Slash revives the bench \u2014 anti-revive still shuts that.`;
     case "briar-witch-iseria":
       if (ctx?.sanctuary) {
-        return `${n} is Witch's Curse: nobody revives while she lives.`;
+        return ctx.wallRevive
+          ? `${n} is Witch's Curse: nobody revives while she lives. Strip does not land during Sanctuary of Battle.`
+          : `${n} is the area strip. Strip does not land during Sanctuary of Battle.`;
+      }
+      if (ctx?.wallSoulblock) {
+        return ctx.wallRevive
+          ? `${n} is Witch's Curse: nobody revives while she lives. Cursed Thorn still strips; Soulburn cannot ignore Effect Resistance.`
+          : `${n} is the area strip. Cursed Thorn still strips; Soulburn cannot ignore Effect Resistance.`;
       }
       if (ctx?.wallRevive) {
         return `${n} is Witch's Curse: nobody revives while she lives. Soulburn Cursed Thorn is the area strip and ignores Effect Resistance.`;
@@ -374,7 +427,7 @@ function jobFor(
     case "belian":
       return `${n} removes soul gain. Play the rest of this draft without Soulburn.`;
     case "shepherd-diene":
-      return `${n} strips when anyone Soulburns. Do not Soulburn into her.`;
+      return `${n} strips when anyone Soulburns.`;
     case "architect-laika":
       return `${n} strips, inflicts Target, and takes an extra turn into her third skill if Target lands.`;
     case "ran":
@@ -423,6 +476,58 @@ function jobFor(
       return `${n} is Stun-immune. Guardian Angel can grant Skill Nullifier when she is hit by area attacks.`;
     case "lionheart-cermia":
       return `${n} extra-turns after her third skill. Dual Attacks and extra attacks into an ally reset that skill \u2014 do not give it to her.`;
+    case "witch-of-the-mere-tenebria":
+      return `${n} strips two, then applies Block so the wall cannot buff or cleanse. Soulburn is an extra turn. While Mirror of the Abyss is on cooldown, her basic attack Dual Attacks. Stealth is only on herself.`;
+    case "dragon-king-sharun":
+      return `${n} cleanses Stun, Sleep, and Fear from allies and grants Cascade: the next attack deals 4,000 extra damage. Is It Going to Rain? is Cannot Buff and a class debuff, not a strip.`;
+    case "astromancer-elena":
+      return `${n} turns enemy counters off while she has Star's Blessing. Enraged Star's Retribution is Unhealable and Restrict, not a strip. Soulburn ignores Effect Resistance.`;
+    case "commander-pavel":
+      return `${n} ignores damage sharing on his third skill. Begone is area damage after ally crits, then a full Combat Readiness bar. Extra attacks, counters, and Dual Attacks do not charge it.`;
+    case "silver-blade-aramintha":
+      return `${n} stuns everyone on Meteor Fall and applies two Burns. Flame Release is an extra attack that detonates Burn, not Dual Attack. Attack scales from Effectiveness at the start of the first fight.`;
+    case "sylvan-sage-vivian":
+      return `${n} starts immune to debuffs at full Focus. Hits of 30% max Health spend Focus for damage reduction. Nature's Judgment cuts ally cooldowns by one. Soulburn is area and does not Dual Attack.`;
+    case "desert-jewel-basar":
+      return `${n} cleanses everyone and grants Immunity. Desert Storm strips two and inverts Barrier into damage. Extra turn only if a target has Barrier.`;
+    case "bystander-hwayoung":
+      return `${n} is immune to buffs and debuffs. That is not the Immunity buff — strip does not apply. Sura ignores damage sharing and damage reduction on heroes, and Extinction if it kills.`;
+    case "disciplinary-prefect-aria":
+      return `${n} injuries on Disciplinary Action while Purge is on cooldown. That extra attack always crits. Enemy Soulburn costs double — this is not Belian.`;
+    case "martial-artist-ken":
+      return `${n} counters when an ally is crit, and Dragon Flame when he is crit. Mort and Star's Blessing turn those counters off. The Coming of Asura is area Decrease Defense.`;
+    case "salome":
+      return `${n} grants herself Skill Nullifier, clones a target, then takes an extra turn. Corrupted Divinity Dual Attacks from the highest Attack ally. Collapse is not injury.`;
+    case "abyssal-yufine":
+      return `${n} is the area strip. Frenzied Strike ignores Effect Resistance and cuts Combat Readiness by 50%. Trauma is on herself. Inner Abyss is not a Speed cap.`;
+    case "rhianna-and-luciella":
+      return `${n} strip two, Bind, then extra turn into the other sister. Pursuit of Death is area strip, Fear, and ignore damage sharing. Afterdream is 70% evasion after the third skill.`;
+    case "hellion-lua":
+      return `${n} grants Challenge to everyone. A Hero hitting her makes those allies counter and pushes Combat Readiness. Lua's Challenge is not a strip. Mort turns the counters off.`;
+    case "operator-sigret":
+      return `${n} is the area Combat Readiness cut. Obliterate is buff duration −1, not a strip. Extra turn only if Annihilation kills. Bonus damage if the target has Barrier.`;
+    case "pirate-captain-flan":
+      return `${n} steals a buff. Hunt fires after an ally hits a target with no buffs: Swift Attack and Combat Readiness. Full Burst is area steal, then Bomb. Bomb stun is delayed.`;
+    case "ainz-ooal-gown":
+      return `${n} strips every buff, then Silence. Death Sentence is 50,000 at the 12th turn and ignores damage sharing — it falls off if he dies. Extra turn is Soulburn only.`;
+    case "archdemons-shadow":
+      return `${n} seals passives. Burst is an extra area attack after a sealed S1, not Dual Attack. Dissolution is extra turn and does not trigger counters.`;
+    case "eternal-wanderer-ludwig":
+      return `${n} grants himself Skill Nullifier. Any Soulburn pushes his Combat Readiness and stacks penetrate. Extra turn is Soulburn only.`;
+    case "requiem-roana":
+      return `${n} is the area strip. Eternal Lament also increases cooldowns and cuts Combat Readiness. Boundless Obsession is not a Speed cap.`;
+    case "specter-tenebria":
+      return `${n} cannot be selected while an ally lives. Endless Nightmare is a guaranteed stun. Poison Blast does not trigger counters. Extra turn is Soulburn only.`;
+    case "tidal-rift-elvira":
+      return `${n} seals, then can extra-attack with Twisted Strike. Engulf is Crit Hit Resistance, not Immunity. Lethal damage on her grants Cascade to her team. Extra attack is not Dual Attack.`;
+    case "top-model-luluca":
+      return `${n} extra-turns after a team Combat Readiness push. Demolish is extinction only if it kills. Extra attack on Energy Blast is not Dual Attack. Ignores damage sharing versus Heroes.`;
+    case "zio":
+      return `${n} strips two, then Silence. Deify is extra attack on S1 and 50% damage reduction when hit. Extra attack is not Dual Attack. Supreme Authority is not a Speed cap.`;
+    case "mediator-kawerik":
+      return `${n} strips every buff, then a team Barrier. Nature Restoration is the team cleanse and Immunity. Barrier is not Barrier Inversion.`;
+    case "death-dealer-ray":
+      return `${n} is the area strip and extra turn. Pestilence makes allies apply Venom, then detonate it — Venom is the injury. Clinical Trial does not trigger Dual Attack.`;
     default:
       break;
   }
@@ -489,8 +594,18 @@ function setupFor(
         u.name,
       ),
     );
+  const wallSoulblock =
+    read.roles.includes("soulblock") ||
+    read.watch.some((t) => t.key === "soulblock");
   return picks
-    .map((p) => jobFor(p.hero, p.label, { sanctuary, wallRevive, wallCounters }))
+    .map((p) =>
+      jobFor(p.hero, p.label, {
+        sanctuary,
+        wallRevive,
+        wallCounters,
+        wallSoulblock,
+      }),
+    )
     .join(" ");
 }
 function pitfallsFor(picks: { label: string; hero: Hero }[], read: DefenseRead): string[] {
@@ -513,12 +628,54 @@ function pitfallsFor(picks: { label: string; hero: Hero }[], read: DefenseRead):
         : "Sanctuary of Battle turns buffs and debuffs off for both sides. Strip and stun will not land. Kill him before God's Might, or bring injury.",
     );
   }
+  if (!sanctuary && (uniq(/^block$/i) || read.debuffs.includes("Block"))) {
+    push(
+      1,
+      "Block: Immunity will not land, and other heroes cannot dispel your debuffs. That is not Seal — passives still run.",
+    );
+  }
+  if (
+    !sanctuary &&
+    uniq(/mirror of the abyss/i) &&
+    names.has("lionheart-cermia")
+  ) {
+    push(
+      6,
+      "Witch of the Mere Dual Attacks while her third skill is on cooldown. A Dual Attack into Lionheart Cermia resets her third skill.",
+    );
+  }
+  if (
+    !sanctuary &&
+    uniq(/cascade|lullaby for waves/i) &&
+    filled.some(
+      (h) =>
+        h.tags.includes("stun") ||
+        (h.debuffs ?? []).includes("Stun") ||
+        (h.debuffs ?? []).includes("Sleep") ||
+        (h.debuffs ?? []).includes("Fear"),
+    )
+  ) {
+    push(
+      5,
+      "Do not Stun, Sleep, or Fear this wall. Lullaby for Waves cleanses that lock and grants Cascade: 4,000 extra damage on their next attack.",
+    );
+  }
   if (read.roles.includes("speedcap")) {
     push(
       1,
       injury
         ? "This wall caps Speed. Stay on injury; a cleave will not work."
         : "This wall caps Speed. You cannot outrun the first cycle.",
+    );
+  }
+  if (
+    !sanctuary &&
+    (read.roles.includes("soulblock") || uniq(/shackles of suppression/i)) &&
+    names.has("briar-witch-iseria")
+  ) {
+    push(
+      2,
+      "Belian turns Soulburn off. Cursed Thorn still strips; it just has to pass Effect Resistance.",
     );
   }
   if (uniq(/offering|scales of equity/i) && !filled.some((h) => (h.effects ?? []).includes("ignore-damage-sharing"))) {
@@ -586,13 +743,83 @@ function pitfallsFor(picks: { label: string; hero: Hero }[], read: DefenseRead):
   ) {
     push(6, `Skill Nullifier eats the first skill. Do not open with ${stripper.name}.`);
   }
+  if (uniq(/^clone$/i) && stripper) {
+    push(6, `Clone copies a kit for one turn. Dispelling it also removes unique effects she copied. Nullifier still eats the first skill — do not open with ${stripper.name}.`);
+  }
+  if (
+    uniq(/^bind$/i) &&
+    filled.some(
+      (h) =>
+        h.id !== "mort" &&
+        (h.tags.includes("dual-attack") ||
+          h.tags.includes("extra-turn") ||
+          h.tags.includes("counter")),
+    )
+  ) {
+    push(
+      5,
+      "Bind turns extra skills, counters, and Dual Attacks off on that hero while it is not their turn.",
+    );
+  }
+  if (uniq(/insight/i) && stripper) {
+    push(
+      5,
+      "Insight is Focus, not an Immunity buff. Strip does not turn it off. Hit 30% of max Health to spend Focus.",
+    );
+  }
+  if (uniq(/divine vessel/i) && stripper) {
+    push(
+      5,
+      "Divine Vessel is immune to buffs and debuffs. Strip does not apply to her.",
+    );
+  }
+  if (
+    uniq(/barrier inversion|desert storm/i) &&
+    filled.some((h) => h.tags.includes("barrier"))
+  ) {
+    push(
+      5,
+      "Do not put Barrier on this wall. Desert Storm inverts it into damage and takes an extra turn.",
+    );
+  }
   if (uniq(/dark moon|noias/i) && filled.some((h) => h.tags.includes("soulburn"))) {
     push(6, "Any Soulburn on this wall triggers Dark Moon and strips your team. Do not Soulburn.");
   }
-  if (uniq(/it's far from over/i) && filled.some((h) => h.tags.includes("dual-attack"))) {
-    push(6, "A Dual Attack into Lionheart Cermia resets her third skill. Do not Dual Attack into her.");
+  if (uniq(/can you handle this/i) && filled.some((h) => h.tags.includes("soulburn"))) {
+    push(6, "Any Soulburn on this wall pushes Eternal Wanderer Ludwig and stacks penetrate. Do not Soulburn.");
   }
-  if (read.tags.includes("evade") && names.has("little-queen-charlotte")) {
+  if (sanctuary && names.has("death-dealer-ray")) {
+    push(
+      5,
+      "Pestilence needs Venom. Sanctuary turns debuffs off — Venom will not land while it is up. Injury that does not need a debuff still stacks.",
+    );
+  }
+  if (
+    uniq(/it's far from over/i) &&
+    filled.some(
+      (h) =>
+        h.tags.includes("dual-attack") ||
+        h.tags.includes("counter") ||
+        h.id === "silver-blade-aramintha" ||
+        h.id === "navy-captain-landy" ||
+        h.id === "hecate" ||
+        h.id === "sylvan-sage-vivian" ||
+        h.id === "bystander-hwayoung" ||
+        h.id === "disciplinary-prefect-aria" ||
+        h.id === "rhianna-and-luciella" ||
+        h.id === "archdemons-shadow" ||
+        h.id === "tidal-rift-elvira" ||
+        h.id === "top-model-luluca" ||
+        h.id === "zio" ||
+        h.id === "salome",
+    )
+  ) {
+    push(
+      6,
+      "A Dual Attack or extra attack into Lionheart Cermia resets her third skill. Do not give it to her.",
+    );
+  }
+  if (read.watch.some((t) => t.key === "evade") && names.has("little-queen-charlotte")) {
     push(6, "Little Queen Charlotte still misses without Soulburn. Belian on their side turns that Soulburn off.");
   }
   if (uniq(/demon blade/i)) {
@@ -600,6 +827,17 @@ function pitfallsFor(picks: { label: string; hero: Hero }[], read: DefenseRead):
   }
   if (uniq(/absolute dignity/i) && filled.some((h) => h.tags.includes("counter"))) {
     push(6, "Mort prevents every other hero from countering. Counter plans do not work into him.");
+  }
+  if (
+    !sanctuary &&
+    !uniq(/absolute dignity/i) &&
+    uniq(/star's blessing|disciple of the stars/i) &&
+    filled.some((h) => h.tags.includes("counter"))
+  ) {
+    push(
+      6,
+      "Star's Blessing turns your counters off while it is up. She starts the fight with it for one turn. This is not Mort.",
+    );
   }
   if (names.has("rinak")) {
     push(7, "Rinak stuns herself on her third skill. Stay on Pickpocketing unless the fight is over.");
@@ -628,12 +866,33 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
       "Sanctuary of Battle turns buffs and debuffs off for both sides. Injury still stacks.",
     );
   }
+  const blocked =
+    !sanctuary &&
+    (read.debuffs.includes("Block") ||
+      read.uniqueEffects.some((u) => /^block$/i.test(u.name)));
+  if (blocked) {
+    why.push(
+      filled.some((h) => h.tags.includes("injury"))
+        ? "Block after her strip: you cannot receive buffs, and other heroes cannot cleanse you. Injury still stacks."
+        : "Block after her strip: you cannot receive buffs, and other heroes cannot cleanse you. Do not plan Immunity through it.",
+    );
+  }
   if (
     read.roles.includes("speedcap") &&
     filled.some((h) => h.tags.includes("injury"))
   ) {
     why.push(
       "Injury ignores the speed cap. You are playing the long fight this wall wants, on better terms.",
+    );
+  }
+  if (
+    names.has("harsetti") &&
+    (read.roles.includes("opener") ||
+      read.archetype === "speed-cleave" ||
+      read.watch.some((t) => t.key === "cleave"))
+  ) {
+    why.push(
+      "Harsetti caps their Speed so the opener does not take the first cycle.",
     );
   }
   if (
@@ -659,6 +918,11 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
       "Area attacks, Dual Attacks, and injury do not miss the way a single-target third skill does.",
     );
   }
+  if (read.watch.some((t) => t.key === "spec-tene")) {
+    why.push(
+      "Specter Tenebria cannot be selected while an ally lives. Area attacks still hit her.",
+    );
+  }
   if (
     read.roles.includes("soulblock") &&
     !filled.some((h) => h.tags.includes("soulburn"))
@@ -675,15 +939,22 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
           u.name,
         ),
       );
+    const soulblock = read.roles.includes("soulblock");
     if (reviveOnWall) {
       why.push(
         sanctuary
           ? "Witch's Curse turns revive off while she lives. Strip does not land during Sanctuary of Battle."
-          : "Soulburn Cursed Thorn strips through Effect Resistance. Revive is off while she lives.",
+          : soulblock
+            ? "Witch's Curse turns revive off while she lives. Cursed Thorn still strips; Soulburn cannot ignore Effect Resistance."
+            : "Soulburn Cursed Thorn strips through Effect Resistance. Revive is off while she lives.",
+      );
+    } else if (!sanctuary && soulblock) {
+      why.push(
+        "Cursed Thorn still strips. Soulburn cannot ignore Effect Resistance on this wall.",
       );
     } else if (
-      read.tags.includes("immunity") ||
-      read.roles.includes("strip")
+      !sanctuary &&
+      (read.tags.includes("immunity") || read.roles.includes("strip"))
     ) {
       why.push(
         "Soulburn Cursed Thorn is an area strip that ignores Effect Resistance.",
@@ -702,6 +973,40 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
     );
   }
   if (
+    names.has("commander-pavel") &&
+    read.uniqueEffects.some((u) => /offering|scales of equity/i.test(u.name))
+  ) {
+    why.push(
+      "Die, You Fly ignores damage sharing on heroes. Do not spend it into the front unless the share is already down.",
+    );
+  }
+  if (
+    read.uniqueEffects.some((u) => /insight/i.test(u.name)) &&
+    filled.some((h) => h.tags.includes("injury"))
+  ) {
+    why.push(
+      "A hit of 30% max Health spends Focus. Injury is how you drop her below three and make debuffs stick.",
+    );
+  }
+  if (
+    names.has("desert-jewel-basar") &&
+    (read.tags.includes("barrier") ||
+      read.uniqueEffects.some((u) => /barrier/i.test(u.name)))
+  ) {
+    why.push(
+      "Desert Storm inverts Barrier into damage and takes an extra turn. The inversion ignores Effect Resistance.",
+    );
+  }
+  if (
+    names.has("bystander-hwayoung") &&
+    (read.roles.includes("revive") ||
+      read.uniqueEffects.some((u) => /offering|scales of equity/i.test(u.name)))
+  ) {
+    why.push(
+      "Sura ignores damage sharing on heroes. A kill inflicts Extinction.",
+    );
+  }
+  if (
     read.uniqueEffects.some((u) => /ferocious stand/i.test(u.name)) &&
     filled.some((h) => h.tags.includes("aoe"))
   ) {
@@ -714,12 +1019,12 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
         : "Area attacks ignore Ferocious Stand. You do not have to attack Arunka.",
     );
   }
-  if (names.has("conqueror-lilias") && read.tags.includes("evade")) {
+  if (names.has("conqueror-lilias") && read.watch.some((t) => t.key === "evade")) {
     why.push(
       "Conqueror Lilias Dual Attacks without Soulburn, which bypasses Concentration.",
     );
   }
-  if (names.has("sea-phantom-politis") && read.tags.includes("evade")) {
+  if (names.has("sea-phantom-politis") && read.watch.some((t) => t.key === "evade")) {
     why.push(
       "Sea Phantom Politis Dual Attacks while Enraged, with no Soulburn required.",
     );
@@ -789,10 +1094,7 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
       "Frieren's extra Focus and Fighting Spirit charges Massacre and Demon Blade faster.",
     );
   }
-  if (
-    names.has("solitaria") &&
-    (read.tags.includes("evade") || read.roles.includes("evasion"))
-  ) {
+  if (names.has("solitaria") && read.watch.some((t) => t.key === "evade")) {
     why.push(
       "Solitaria sets their Focus gain to zero. Massacre never comes up.",
     );
@@ -814,6 +1116,52 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
     why.push(
       "Peira extra turn plus Swift Attack is the opener. She is not a stripper.",
     );
+  }
+  if (names.has("archdemons-shadow") && read.tags.includes("counter")) {
+    why.push("Dissolution does not trigger a counterattack.");
+  }
+  if (names.has("specter-tenebria") && read.tags.includes("counter")) {
+    why.push("Poison Blast does not trigger a counterattack.");
+  }
+  if (names.has("death-dealer-ray") && read.tags.includes("dual-attack")) {
+    why.push("Clinical Trial does not trigger Dual Attack.");
+  }
+  if (
+    names.has("zio") &&
+    (read.uniqueEffects.some((u) => /inner abyss|boundless obsession/i.test(u.name)) ||
+      read.watch.some((t) => t.key === "restrict"))
+  ) {
+    why.push(
+      "Supreme Authority ignores effects that reduce Combat Readiness increases.",
+    );
+  }
+  if (
+    names.has("death-dealer-ray") &&
+    (read.roles.includes("speedcap") ||
+      read.archetype === "harsetti-stall" ||
+      read.archetype === "injury-grind")
+  ) {
+    why.push(
+      "Pestilence makes every ally apply Venom, then detonate it. That is the injury. The cap does not stop it.",
+    );
+  }
+  if (
+    names.has("mediator-kawerik") &&
+    (read.tags.includes("immunity") || read.roles.includes("strip"))
+  ) {
+    why.push(
+      "Balance of Power strips every buff, then a team Barrier. Nature Restoration is the cleanse and Immunity.",
+    );
+  }
+  if (
+    names.has("archdemons-shadow") &&
+    (read.roles.includes("speedcap") ||
+      read.roles.includes("soulblock") ||
+      read.watch.some((t) =>
+        ["speedcap", "soulblock", "ss-vivian", "b-hwayoung"].includes(t.key),
+      ))
+  ) {
+    why.push("Seal turns those passives off. Burst is the extra area attack after a sealed S1.");
   }
   if (
     names.has("urban-shadow-choux") &&
@@ -912,7 +1260,7 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
   }
   if (
     names.has("little-queen-charlotte") &&
-    (read.tags.includes("evade") || read.roles.includes("evasion"))
+    read.watch.some((t) => t.key === "evade")
   ) {
     why.push(
       "Soulburn on her third skill is +100% Hit Chance. Aim Violet as the main target.",
@@ -980,10 +1328,10 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
     );
   }
   if (
-    names.has("lionheart-cermia") &&
-    (read.tags.includes("dual-attack") || read.tags.includes("counter"))
+    read.uniqueEffects.some((u) => /it's far from over/i.test(u.name)) &&
+    filled.some((h) => h.tags.includes("dual-attack"))
   ) {
-    why.push("Do not Dual Attack into her. That resets her third skill.");
+    why.push("Do not Dual Attack into Lionheart Cermia. That resets her third skill.");
   }
   if (
     names.has("architect-laika") &&
@@ -1006,6 +1354,29 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
     why.push(
       "Sleep reduces Evasion to zero until they take a hit. Do not splash before Eye of Death.",
     );
+  }
+  if (why.length === 0) {
+    const fromWatch: Record<string, string> = {
+      "spec-tene":
+        "Area attacks still hit Specter Tenebria. Single-target skills cannot select her while an ally lives.",
+      ainz: "Death Sentence is 50,000 at the twelfth turn and falls off if he dies.",
+      "rq-roana":
+        "Combat Readiness from Speed is halved. Do not win this as a Speed race.",
+      seal: "Seal turns passives off. Do not lean on a buffed opener.",
+      cleave: "They want the first cycle. Cap Speed, or survive into the next one.",
+      "ew-ludwig":
+        "Any Soulburn pushes Eternal Wanderer Ludwig. Do not Soulburn.",
+      "dark-moon": "Any Soulburn triggers Dark Moon. Do not Soulburn.",
+      "tr-elvira":
+        "Engulf is Crit Hit Resistance, not Immunity. Lethal damage on her grants her team extra damage on their next attack.",
+      zio: "Strip two, then Silence. Supreme Authority is not a Speed cap.",
+    };
+    for (const t of read.watch) {
+      const line = fromWatch[t.key];
+      if (line && !why.includes(line)) why.push(line);
+      if (why.length >= 2) break;
+    }
+    if (why.length === 0 && read.watch[0]) why.push(read.watch[0].note);
   }
   return why.slice(0, 3);
 }
@@ -1030,6 +1401,11 @@ function recipesFor(read: DefenseRead): Recipe[] {
       const injury = all.find((r) => r.id === "injury-vs-stall");
       if (injury) hit = [injury, ...hit];
     }
+  }
+  if (read.archetype === "injury-grind") {
+    hit = hit.filter(
+      (r) => r.id !== "outspeed-cleave" && r.id !== "strip-control",
+    );
   }
   if (hit.length > 0) return hit;
   return all.filter((r) => r.vs.includes("bruiser-mix"));

@@ -1,7 +1,9 @@
+/**
+ * Built-in recipes. Accumulated — never rewrite this file as a whole.
+ * Overlay refreshes `source = seed` only. Admin-authored and generated
+ * strategies keep their own ids. Floor: stay above 200 lines.
+ */
 import type { ArchetypeId, DefensePreset, Recipe } from "./types";
-
-/** Built-in recipes. Overlay refreshes `source = seed` only.
- * Admin-authored and generated strategies keep their own ids. */
 
 export const ARCHETYPE_META: Record<
   ArchetypeId,
@@ -53,7 +55,7 @@ export const RECIPES: Recipe[] = [
   {
     id: "injury-vs-stall",
     name: "Injury grind",
-    vs: ["harsetti-stall", "revive-wall", "bruiser-mix", "immunity-soul", "evasion-counter", "turn2-control"],
+    vs: ["harsetti-stall", "revive-wall", "bruiser-mix", "immunity-soul", "evasion-counter", "turn2-control", "injury-grind"],
     summary: "You cannot outspeed this wall. Stack injury, then grind.",
     wincon: "Stack injury on the threat. Once maximum Health is reduced, the stall cannot out-heal you.",
     setup: "An injury core takes the first slot. A tank holds the front while injury stacks. Sustain covers a long cycle. If the wall can revive, the fourth slot is anti-revive.",
@@ -63,10 +65,10 @@ export const RECIPES: Recipe[] = [
       "Ferocious Stand forces single-target skills onto Arunka. Use area injury, or accept hitting her.",
     ],
     slots: [
-      { label: "Injury", tags: ["injury"], prefer: ["empyrean-ilynav", "twisted-eidolon-kayron", "lone-crescent-bellona", "monarch-of-the-sword-iseria", "urban-shadow-choux", "zahhak"] },
+      { label: "Injury", tags: ["injury"], prefer: ["empyrean-ilynav", "twisted-eidolon-kayron", "lone-crescent-bellona", "monarch-of-the-sword-iseria", "urban-shadow-choux", "zahhak", "disciplinary-prefect-aria", "death-dealer-ray"] },
       { label: "Frontline", roles: ["tank", "bruiser"], prefer: ["dragon-bride-senya", "last-rider-krau", "mort", "dark-corvus"] },
-      { label: "Sustain", roles: ["healer", "cleanse", "revive"], prefer: ["ruele-of-light", "school-nurse-yulha", "maid-chloe", "blood-moon-haste", "diene"] },
       { label: "Tech", tags: ["anti-revive", "strip"], roles: ["soulblock", "strip"], prefer: ["briar-witch-iseria", "hecate", "shepherd-diene", "belian"] },
+      { label: "Sustain", roles: ["healer", "cleanse", "revive"], prefer: ["ruele-of-light", "school-nurse-yulha", "maid-chloe", "blood-moon-haste", "diene"] },
     ],
   },
   {
@@ -82,9 +84,9 @@ export const RECIPES: Recipe[] = [
       "Hecate's third skill starts the first fight on cooldown. The passive is the point of bringing her.",
     ],
     slots: [
-      { label: "Anti-revive", tags: ["anti-revive"], prefer: ["briar-witch-iseria", "hecate"] },
-      { label: "Strip", roles: ["strip"], tags: ["strip"], prefer: ["briar-witch-iseria", "shepherd-diene", "rinak", "frieren", "fallen-cecilia"] },
-      { label: "Closer", roles: ["dps", "cleave", "bruiser"], prefer: ["straze", "specimen-sez", "little-queen-charlotte", "hecate", "arbiter-vildred"] },
+      { label: "Anti-revive", tags: ["anti-revive"], prefer: ["briar-witch-iseria", "hecate", "bystander-hwayoung"] },
+      { label: "Strip", roles: ["strip"], tags: ["strip"], prefer: ["briar-witch-iseria", "shepherd-diene", "rinak", "frieren", "fallen-cecilia", "witch-of-the-mere-tenebria", "desert-jewel-basar", "abyssal-yufine", "pirate-captain-flan", "ainz-ooal-gown", "requiem-roana", "zio", "mediator-kawerik", "death-dealer-ray"] },
+      { label: "Closer", roles: ["dps", "cleave", "bruiser"], prefer: ["straze", "specimen-sez", "little-queen-charlotte", "hecate", "arbiter-vildred", "commander-pavel", "bystander-hwayoung"] },
       { label: "Cover", roles: ["opener", "tank", "control"], prefer: ["genesis-ras", "boss-arunka", "last-rider-krau", "rinak"] },
     ],
   },
@@ -102,7 +104,7 @@ export const RECIPES: Recipe[] = [
     ],
     slots: [
       { label: "Cap", roles: ["speedcap"], prefer: ["harsetti"], tags: ["cr-cut"] },
-      { label: "Tank", roles: ["tank"], prefer: ["last-rider-krau", "dragon-bride-senya", "mort", "dark-corvus"] },
+      { label: "Tank", roles: ["tank"], prefer: ["last-rider-krau", "dragon-bride-senya", "mort", "dark-corvus", "crimson-armin"] },
       { label: "Soul lock", roles: ["soulblock"], prefer: ["belian"] },
       { label: "Flex", roles: ["bruiser", "healer", "control"], prefer: ["empyrean-ilynav", "lone-crescent-bellona", "urban-shadow-choux", "ruele-of-light"] },
     ],
@@ -120,10 +122,10 @@ export const RECIPES: Recipe[] = [
       "Do not Soulburn into Shepherd of the Dark Diene. Dark Moon strips everyone.",
     ],
     slots: [
-      { label: "Opener", roles: ["opener"], prefer: ["architect-laika", "ran", "faithless-lidica", "lone-wolf-peira"] },
-      { label: "Strip", roles: ["strip"], tags: ["strip"], prefer: ["briar-witch-iseria", "faithless-lidica", "ran", "rinak", "frieren"] },
-      { label: "Cleave", roles: ["cleave", "dps"], tags: ["aoe"], prefer: ["architect-laika", "straze", "judge-kise", "arbiter-vildred", "navy-captain-landy"] },
-      { label: "Enable", roles: ["soulblock", "cleanse", "dps"], prefer: ["belian", "diene", "conqueror-lilias", "angel-of-light-angelica"] },
+      { label: "Opener", roles: ["opener"], prefer: ["architect-laika", "ran", "faithless-lidica", "lone-wolf-peira", "salome", "rhianna-and-luciella", "archdemons-shadow", "tidal-rift-elvira", "top-model-luluca", "death-dealer-ray"] },
+      { label: "Strip", roles: ["strip"], tags: ["strip"], prefer: ["briar-witch-iseria", "faithless-lidica", "ran", "rinak", "frieren", "witch-of-the-mere-tenebria", "desert-jewel-basar", "abyssal-yufine", "rhianna-and-luciella", "pirate-captain-flan", "zio", "mediator-kawerik", "death-dealer-ray"] },
+      { label: "Cleave", roles: ["cleave", "dps"], tags: ["aoe"], prefer: ["architect-laika", "straze", "judge-kise", "arbiter-vildred", "navy-captain-landy", "operator-sigret", "eternal-wanderer-ludwig", "archdemons-shadow", "requiem-roana"] },
+      { label: "Enable", roles: ["soulblock", "cleanse", "dps"], prefer: ["belian", "diene", "conqueror-lilias", "angel-of-light-angelica", "dragon-king-sharun", "sylvan-sage-vivian", "hellion-lua", "mediator-kawerik"] },
     ],
   },
   {
@@ -139,10 +141,10 @@ export const RECIPES: Recipe[] = [
       "Do not Dual Attack into Lionheart Cermia. That returns her third skill.",
     ],
     slots: [
-      { label: "Immunity", tags: ["immunity"], roles: ["tank"], prefer: ["last-rider-krau"] },
-      { label: "Control", roles: ["control"], prefer: ["sage-baal", "rinak", "frieren", "solitaria"] },
+      { label: "Immunity", tags: ["immunity"], roles: ["tank"], prefer: ["last-rider-krau", "crimson-armin"] },
+      { label: "Control", roles: ["control"], prefer: ["sage-baal", "rinak", "frieren", "solitaria", "witch-of-the-mere-tenebria", "silver-blade-aramintha", "specter-tenebria", "hellion-lua", "zio"] },
       { label: "Wincon", roles: ["bruiser", "dps"], prefer: ["empyrean-ilynav", "twisted-eidolon-kayron", "lionheart-cermia", "designer-lilibet"] },
-      { label: "Hold", roles: ["tank", "healer", "soulblock", "cleanse"], prefer: ["last-rider-krau", "angel-of-light-angelica", "designer-lilibet", "dragon-bride-senya"] },
+      { label: "Hold", roles: ["tank", "healer", "soulblock", "cleanse"], prefer: ["last-rider-krau", "angel-of-light-angelica", "designer-lilibet", "dragon-bride-senya", "dragon-king-sharun", "desert-jewel-basar", "mediator-kawerik"] },
     ],
   },
   {
@@ -158,10 +160,10 @@ export const RECIPES: Recipe[] = [
       "Do not Dual Attack into Lionheart Cermia.",
     ],
     slots: [
-      { label: "Miss", roles: ["evasion"], tags: ["evade"], prefer: ["setsuka", "remnant-violet", "lone-wolf-peira"] },
+      { label: "Miss", roles: ["evasion"], tags: ["evade"], prefer: ["setsuka", "remnant-violet"] },
       { label: "Force", tags: ["dual-attack", "counter"], prefer: ["conqueror-lilias", "sea-phantom-politis", "frieren"] },
       { label: "Frontline", roles: ["tank", "bruiser"], prefer: ["dragon-bride-senya", "last-rider-krau", "fallen-cecilia", "boss-arunka"] },
-      { label: "Support", roles: ["healer", "soulblock", "control"], prefer: ["frieren", "belian", "lady-of-the-scales", "diene"] },
+      { label: "Support", roles: ["healer", "soulblock", "control"], prefer: ["frieren", "belian", "lady-of-the-scales", "diene", "dragon-king-sharun"] },
     ],
   },
   {
@@ -177,16 +179,16 @@ export const RECIPES: Recipe[] = [
       "During Demon Blade Unleashed, Setsuka cannot die. Wait it out, or strip first.",
     ],
     slots: [
-      { label: "Force", tags: ["dual-attack", "aoe"], roles: ["opener"], prefer: ["architect-laika", "conqueror-lilias", "sea-phantom-politis", "rinak"] },
+      { label: "Force", tags: ["dual-attack", "aoe"], roles: ["opener"], prefer: ["architect-laika", "conqueror-lilias", "sea-phantom-politis", "rinak", "salome"] },
       { label: "AoE", roles: ["cleave", "dps"], tags: ["aoe"], prefer: ["little-queen-charlotte", "straze", "judge-kise", "navy-captain-landy", "frieren"] },
-      { label: "True", tags: ["fixed-dmg", "injury"], prefer: ["twisted-eidolon-kayron", "empyrean-ilynav", "lone-crescent-bellona", "monarch-of-the-sword-iseria", "zahhak"] },
-      { label: "Cover", roles: ["strip", "tank", "soulblock", "control"], prefer: ["solitaria", "mort", "briar-witch-iseria", "belian"] },
+      { label: "True", tags: ["fixed-dmg", "injury"], prefer: ["twisted-eidolon-kayron", "empyrean-ilynav", "lone-crescent-bellona", "monarch-of-the-sword-iseria", "zahhak", "disciplinary-prefect-aria", "death-dealer-ray"] },
+      { label: "Cover", roles: ["strip", "tank", "soulblock", "control"], prefer: ["solitaria", "mort", "briar-witch-iseria", "belian", "hellion-lua"] },
     ],
   },
   {
     id: "strip-control",
     name: "Strip and lock",
-    vs: ["immunity-soul", "injury-grind", "revive-wall", "turn2-control"],
+    vs: ["immunity-soul", "revive-wall", "turn2-control"],
     summary: "Remove the Immunity, then the fight is a normal draft.",
     wincon: "Strip through Effect Resistance, then lock. Their kit never gets to play.",
     setup: "A real strip first. Control locks the cycle after. Do not open the strip into Skill Nullifier.",
@@ -196,8 +198,8 @@ export const RECIPES: Recipe[] = [
       "Belian does not care about a Soulburn follow-up.",
     ],
     slots: [
-      { label: "Strip", tags: ["strip", "ignore-er"], roles: ["strip"], prefer: ["briar-witch-iseria", "judge-kise", "successor-taeyou", "ran", "rinak", "frieren"] },
-      { label: "Lock", roles: ["control"], prefer: ["solitaria", "ambitious-tywin", "rinak", "frieren"] },
+      { label: "Strip", tags: ["strip", "ignore-er"], roles: ["strip"], prefer: ["briar-witch-iseria", "judge-kise", "successor-taeyou", "ran", "rinak", "frieren", "witch-of-the-mere-tenebria", "desert-jewel-basar", "abyssal-yufine", "zio", "ainz-ooal-gown"] },
+      { label: "Lock", roles: ["control"], prefer: ["solitaria", "ambitious-tywin", "rinak", "frieren", "witch-of-the-mere-tenebria"] },
       { label: "Wincon", roles: ["dps", "bruiser", "cleave"], prefer: ["straze", "judge-kise", "little-queen-charlotte", "closer-charles"] },
       { label: "Hold", roles: ["tank", "healer", "opener"], prefer: ["genesis-ras", "last-rider-krau", "ruele-of-light", "dragon-bride-senya"] },
     ],
