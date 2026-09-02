@@ -11,6 +11,7 @@ import { suggestedVpDelta } from "@/lib/e7/ranks";
 import { ARCHETYPE_META } from "@/lib/e7/recipes";
 import { recordFor } from "@/lib/e7/stats";
 import { builtIds, useArenaStore } from "@/lib/e7/store";
+import { lineupLimitNote } from "@/lib/e7/threats";
 import { EFFECT_LABEL, type CounterTeam } from "@/lib/e7/types";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +74,8 @@ export function ScoutView() {
   }
 
   const meta = read ? ARCHETYPE_META[read.archetype] : null;
+  const limitNote =
+    filled.length === 4 ? lineupLimitNote(read?.watch ?? [], counters) : null;
 
   return (
     <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
@@ -309,6 +312,9 @@ export function ScoutView() {
                 : "Suggested teams from the full hero list. You may not own every unit. Not a win guarantee — we do not use gear, sets, artifacts, or exclusive equipment."}
             </p>
           ) : null}
+          {limitNote ? (
+            <p className="max-w-md text-sm leading-relaxed text-foreground">{limitNote}</p>
+          ) : null}
         </div>
 
         {counters.length === 0 ? (
@@ -317,8 +323,8 @@ export function ScoutView() {
               {filled.length < 4
                 ? `Add ${4 - filled.length} more ${4 - filled.length === 1 ? "hero" : "heroes"} to the defense. Lineups appear when all four slots are filled.`
                 : restrict
-                  ? "No lineup from your built units for this wall yet. Try another defense, or turn off Only built units."
-                  : "No lineup from the verified catalog for this wall yet. Try another defense."}
+                  ? "No lineup from your built units for this wall yet. Refresh is a real option, or turn off Only built units."
+                  : "No lineup from the verified catalog for this wall yet. Refresh is a real option."}
             </CardContent>
           </Card>
         ) : (

@@ -921,3 +921,37 @@ export function unansweredThreats(threats: DraftThreat[], filled: Hero[]): strin
     })
     .map((t) => t.label);
 }
+
+const FATAL_GAP = new Set(["Speed cap", "First cycle", "Revive / reset", "Notos"]);
+
+function prettyFatal(label: string) {
+  if (label === "Notos") return "Sanctuary of Battle";
+  if (label === "Cannot miss") return "the first cycle (it hits everyone even on miss)";
+  return label;
+}
+
+/** Factual limit when no listed lineup answers a wall-level threat. Not a skip order. */
+export function lineupLimitNote(
+  watch: DraftThreat[],
+  teams: { gaps: string[] }[],
+): string | null {
+  const names: string[] = [];
+  if (watch.some((t) => t.key === "cannot-miss")) {
+    names.push(prettyFatal("Cannot miss"));
+  }
+  if (teams.length > 0) {
+    const shared = teams[0]!.gaps.filter(
+      (g) => FATAL_GAP.has(g) && teams.every((t) => t.gaps.includes(g)),
+    );
+    for (const g of shared) {
+      if (g === "First cycle" && names.some((n) => n.includes("first cycle"))) continue;
+      names.push(prettyFatal(g));
+    }
+  }
+  if (names.length === 0) return null;
+  if (names.length === 1) {
+    return `No lineup on this list answers ${names[0]}. Refresh is a real option.`;
+  }
+  const last = names[names.length - 1]!;
+  return `No lineup on this list answers ${names.slice(0, -1).join(", ")} or ${last}. Refresh is a real option.`;
+}
