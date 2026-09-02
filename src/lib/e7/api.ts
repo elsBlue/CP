@@ -93,6 +93,10 @@ function heroFromRow(row: Record<string, unknown>): Hero {
     kit: String(row.kit ?? ""),
     defense: Number(row.defense ?? 5),
     offense: Number(row.offense ?? 5),
+    baseSpeed: (() => {
+      const n = Number(row.base_speed);
+      return Number.isFinite(n) ? n : undefined;
+    })(),
     icon: String(row.icon ?? ""),
     verified: Boolean(row.verified),
     checkedAt: asCheckedAt(row.checked_at),
@@ -168,7 +172,7 @@ async function ensureCatalog() {
   for (let i = 0; i < HEROES.length; i++) {
     const h = HEROES[i]!;
     await sql`
-      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order, verified, checked_at, rarity)
+      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, base_speed, icon, sort_order, verified, checked_at, rarity)
       values (
         ${h.id}, ${h.name}, ${h.short}, ${h.element}, ${h.class}, ${h.tier},
         ${JSON.stringify(h.roles)}::jsonb, ${JSON.stringify(h.tags)}::jsonb,
@@ -176,7 +180,7 @@ async function ensureCatalog() {
         ${JSON.stringify(h.buffs ?? [])}::jsonb,
         ${JSON.stringify(h.debuffs ?? [])}::jsonb,
         ${JSON.stringify(h.uniqueEffects ?? [])}::jsonb,
-        ${h.kit}, ${h.defense}, ${h.offense}, ${h.icon ?? ""}, ${i}, ${h.verified ?? false},
+        ${h.kit}, ${h.defense}, ${h.offense}, ${h.baseSpeed ?? null}, ${h.icon ?? ""}, ${i}, ${h.verified ?? false},
         ${h.verified ? (h.checkedAt ?? todayStamp()) : null}, ${heroRarity(h)}
       )
       on conflict (id) do nothing
@@ -207,6 +211,7 @@ async function ensureCatalog() {
         kit = ${hero.kit},
         defense = ${hero.defense},
         offense = ${hero.offense},
+        base_speed = ${hero.baseSpeed ?? null},
         verified = true,
         checked_at = ${hero.checkedAt ?? todayStamp()}
       where id = ${hero.id}
@@ -540,7 +545,7 @@ export const getArena = createServerFn({ method: "GET" })
     const storedEnemy = asStringList(row?.enemy);
     return {
       vp: Number(row?.vp ?? DEFAULT_VP),
-      restrictToRoster: Boolean(row?.restrict_to_roster ?? true),
+      restrictToRoster: Boolean(row?.restrict_to_roster ?? false),
       enemy: padFour(storedEnemy.some(Boolean) ? storedEnemy : defaultEnemy()),
       lastTeam: padFour(asStringList(row?.last_team)),
       roster: parseJson<Record<string, RosterEntry>>(row?.roster, defaultRoster()),
@@ -704,6 +709,7 @@ const heroSchema = z.object({
   kit: z.string().max(800),
   defense: z.number().int().min(0).max(10),
   offense: z.number().int().min(0).max(10),
+  baseSpeed: z.number().int().min(70).max(160).optional(),
   icon: z
     .string()
     .max(180000)
@@ -729,7 +735,7 @@ export const saveHero = createServerFn({ method: "POST" })
     const checkedAt = data.verified ? todayStamp() : null;
     const rarity = data.rarity === 3 || data.rarity === 4 ? data.rarity : 5;
     await sql`
-      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, icon, sort_order, verified, checked_at, rarity)
+      insert into heroes (id, name, short, element, class, tier, roles, tags, effects, buffs, debuffs, unique_effects, kit, defense, offense, base_speed, icon, sort_order, verified, checked_at, rarity)
       values (
         ${data.id}, ${data.name}, ${data.short}, ${data.element}, ${data.class}, ${data.tier},
         ${JSON.stringify(data.roles)}::jsonb, ${JSON.stringify(data.tags)}::jsonb,
@@ -737,7 +743,7 @@ export const saveHero = createServerFn({ method: "POST" })
         ${JSON.stringify(data.buffs ?? [])}::jsonb,
         ${JSON.stringify(data.debuffs ?? [])}::jsonb,
         ${JSON.stringify(data.uniqueEffects ?? [])}::jsonb,
-        ${data.kit}, ${data.defense}, ${data.offense}, ${""}, 0, ${data.verified ?? false},
+        ${data.kit}, ${data.defense}, ${data.offense}, ${data.baseSpeed ?? null}, ${""}, 0, ${data.verified ?? false},
         ${checkedAt}, ${rarity}
       )
       on conflict (id) do update set
@@ -756,6 +762,7 @@ export const saveHero = createServerFn({ method: "POST" })
         kit = excluded.kit,
         defense = excluded.defense,
         offense = excluded.offense,
+        base_speed = excluded.base_speed,
         verified = excluded.verified,
         checked_at = excluded.checked_at
     `;

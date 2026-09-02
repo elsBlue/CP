@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Info } from "lucide-react";
 import { toast } from "sonner";
 import { CounterCard } from "@/components/e7/counter-card";
+import { InfoTip } from "@/components/e7/info-tip";
 import { TeamSlots } from "@/components/e7/team-slots";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getHero, useCatalog } from "@/lib/e7/catalog";
 import { classifyDefense, recommendCounters } from "@/lib/e7/engine";
 import { suggestedVpDelta } from "@/lib/e7/ranks";
@@ -45,7 +44,6 @@ export function ScoutView() {
   );
 
   const [openIds, setOpenIds] = useState<string[]>([]);
-  const [builtInfo, setBuiltInfo] = useState(false);
   const [watchAll, setWatchAll] = useState(false);
 
   useEffect(() => {
@@ -79,62 +77,16 @@ export function ScoutView() {
   return (
     <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
       <div className="flex flex-col gap-6">
-        <header className="rise-in flex flex-col gap-2">
-          <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-            Scout
-          </p>
-          {read && meta ? (
-            <p className="text-sm font-medium text-muted-foreground">Wall type</p>
-          ) : null}
-          <h1 className="font-display text-3xl leading-[1.1] tracking-tight sm:text-4xl">
-            {read && meta ? meta.title : "The wall"}
-          </h1>
-          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-            {read && meta
-              ? meta.blurb
-              : "The wall is the four-hero defense you attack. Fill the slots. We name the type from their kits."}
-          </p>
-          {read && meta ? (
-            <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-              Counters use your built, in-game verified units. Won or Lost after the fight is what proves a recipe.
-            </p>
-          ) : null}
-          {read && read.unverifiedIds.length > 0 ? (
-            <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-              {read.unverifiedIds.length === 1 ? "One unit on this wall is" : `${read.unverifiedIds.length} units on this wall are`}{" "}
-              not in-game verified. The wall type is named from verified kits only.
-            </p>
-          ) : null}
-          {read && read.watch.length > 0 ? (
-            <div className="mt-1 flex max-w-md flex-col gap-2">
-              <ul className="flex flex-col gap-2">
-                {(watchAll ? read.watch : read.watch.slice(0, 3)).map((item) => (
-                  <li key={item.key} className="text-sm leading-relaxed">
-                    <span className="font-medium">{item.label}.</span>{" "}
-                    <span className="text-muted-foreground">{item.note}</span>
-                  </li>
-                ))}
-              </ul>
-              {read.watch.length > 3 ? (
-                <button
-                  type="button"
-                  onClick={() => setWatchAll((v) => !v)}
-                  className="self-start text-sm font-medium text-foreground"
-                >
-                  {watchAll ? "Show less" : `View all (${read.watch.length})`}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </header>
-
-        <div className="rise-in-2 flex flex-col gap-3">
+        <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+          Scout
+        </p>
+        <div className="rise-in flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="min-w-0">
               <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
                 Enemy wall
               </p>
-              <p className="text-sm text-muted-foreground">Four heroes on their defense</p>
+              <p className="text-sm text-muted-foreground">Front is the rightmost slot — that is the foremost ally.</p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               {presets.length > 0 ? (
@@ -160,7 +112,6 @@ export function ScoutView() {
             ids={enemy}
             onChangeSlot={setEnemySlot}
             pickerTitle="Enemy unit"
-            labels={["Lead", "Two", "Three", "Four"]}
           />
           {wallsOpen && presets.length > 0 ? (
             <ul className="flex flex-col gap-1">
@@ -191,6 +142,48 @@ export function ScoutView() {
               })}
             </ul>
           ) : null}
+        </div>
+
+        {read && meta ? (
+        <header className="rise-in flex flex-col gap-2">
+          <p className="text-sm font-medium text-muted-foreground">Wall type</p>
+          <h1 className="font-display text-3xl leading-[1.1] tracking-tight sm:text-4xl">
+            {meta.title}
+          </h1>
+          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+            {meta.blurb}
+          </p>
+          {read && read.unverifiedIds.length > 0 ? (
+            <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+              {read.unverifiedIds.length === 1 ? "One unit on this wall is" : `${read.unverifiedIds.length} units on this wall are`}{" "}
+              not in-game verified. The wall type is named from verified kits only.
+            </p>
+          ) : null}
+          {read && read.watch.length > 0 ? (
+            <div className="mt-1 flex max-w-md flex-col gap-2">
+              <ul className="flex flex-col gap-2">
+                {(watchAll ? read.watch : read.watch.slice(0, 3)).map((item) => (
+                  <li key={item.key} className="text-sm leading-relaxed">
+                    <span className="font-medium">{item.label}.</span>{" "}
+                    <span className="text-muted-foreground">{item.note}</span>
+                  </li>
+                ))}
+              </ul>
+              {read.watch.length > 3 ? (
+                <button
+                  type="button"
+                  onClick={() => setWatchAll((v) => !v)}
+                  className="self-start text-sm font-medium text-foreground"
+                >
+                  {watchAll ? "Show less" : `View all (${read.watch.length})`}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </header>
+        ) : null}
+
+        <div className="rise-in-2 flex flex-col gap-3">
           {read &&
           (read.effects.length > 0 ||
             read.buffs.length > 0 ||
@@ -283,43 +276,49 @@ export function ScoutView() {
         <div className="flex h-10 items-center justify-between gap-3 rounded-xl bg-card px-3 shadow-[var(--shadow-border)]">
           <div className="flex min-w-0 items-center gap-1">
             <p className="text-sm font-medium">Only built units</p>
-            <Tooltip open={builtInfo} onOpenChange={setBuiltInfo}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="grid size-6 place-items-center rounded-full text-muted-foreground"
-                  aria-label="About only built units"
-                >
-                  <Info className="size-3.5" strokeWidth={1.75} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="start" className="max-w-[16rem] leading-relaxed">
-                On: fill from {builtVerified} built, in-game verified{" "}
-                {builtVerified === 1 ? "hero" : "heroes"}. Off: the verified catalog (theory). Unverified
-                kits stay out.
-              </TooltipContent>
-            </Tooltip>
+            <InfoTip label="About only built units">
+              On: fill from {builtVerified} built, in-game verified{" "}
+              {builtVerified === 1 ? "hero" : "heroes"}. Off: the full checked list. Unchecked
+              kits stay out.
+            </InfoTip>
           </div>
           <Switch checked={restrict} onCheckedChange={setRestrict} />
         </div>
       </div>
 
       <div className="flex flex-col gap-4 lg:sticky lg:top-20">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-display text-2xl tracking-tight">Counters</h2>
-          {counters.length > 0 ? (
-            <p className="text-sm text-muted-foreground">{counters.length} matching</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">{filled.length} of 4</p>
-          )}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-1">
+              <h2 className="font-display text-2xl tracking-tight">Lineups to try</h2>
+              <InfoTip label="About lineups">
+                We match enemy skills to a team. Speed rolls, gear, artifacts, and exclusive
+                equipment are not included. Won or Lost after the fight is what proves a lineup.
+              </InfoTip>
+            </div>
+            {counters.length > 0 ? (
+              <p className="text-sm text-muted-foreground">{counters.length} to try</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">{filled.length} of 4</p>
+            )}
+          </div>
+          {filled.length === 4 ? (
+            <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+              {restrict
+                ? "Suggested teams from units you marked built. Not a win guarantee — we do not use gear, sets, artifacts, or exclusive equipment."
+                : "Suggested teams from the full hero list. You may not own every unit. Not a win guarantee — we do not use gear, sets, artifacts, or exclusive equipment."}
+            </p>
+          ) : null}
         </div>
 
         {counters.length === 0 ? (
           <Card>
             <CardContent className="p-5 text-sm leading-relaxed text-muted-foreground">
               {filled.length < 4
-                ? `Add ${4 - filled.length} more ${4 - filled.length === 1 ? "hero" : "heroes"} to the defense. Counters appear when all four slots are filled.`
-                : "No matching recipe for this wall yet. Try another defense, or turn off Only built units. Counters use in-game verified kits only."}
+                ? `Add ${4 - filled.length} more ${4 - filled.length === 1 ? "hero" : "heroes"} to the defense. Lineups appear when all four slots are filled.`
+                : restrict
+                  ? "No lineup from your built units for this wall yet. Try another defense, or turn off Only built units."
+                  : "No lineup from the verified catalog for this wall yet. Try another defense."}
             </CardContent>
           </Card>
         ) : (

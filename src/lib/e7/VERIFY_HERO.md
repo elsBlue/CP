@@ -40,6 +40,7 @@ Write the object in `heroes.ts` (edit that hero only):
 | `checkedAt` | Today `YYYY-MM-DD` |
 | `tier` | SS / S / A / B from current PvP use, not star rarity |
 | `rarity` | 5 / 4 / 3 via `heroRarity` if not default 5 |
+| `baseSpeed` | Journal base Speed. Integer. Do not guess. |
 
 Call out in `kit` / unique text:
 
@@ -71,6 +72,7 @@ Add a `rank` entry.
 **Add** when the unique is team-wide or a first-cycle trap, for example:
 
 - Force target, Offering, Sanctuary, miss nest, soul lock, Dark Moon
+- First-cycle extra-turn opener (Rinak, Ran, F.Lidica) — skill extra turn, **not** Soulburn-only
 - Cannot-die window, Illusion, Death Sentence
 - Extra-turn Dual Attack, Burst extra-attack (not Dual Attack)
 - Skill Effect Nullifier (must **not** reuse the Skill Nullifier watch)

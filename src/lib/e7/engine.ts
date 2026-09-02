@@ -8,7 +8,7 @@ import { allHeroes, allRecipes, getHero } from "./catalog";
 import { heroEffects } from "./effects";
 import { TIER_ORDER } from "./heroes";
 import { ARCHETYPE_META } from "./recipes";
-import { unansweredThreats, wallThreats } from "./threats";
+import { hitsEvenOnMiss, isFirstCycleOpener, unansweredThreats, wallThreats } from "./threats";
 import type {
   ArchetypeId,
   CounterTeam,
@@ -655,6 +655,19 @@ function pitfallsFor(picks: { label: string; hero: Hero }[], read: DefenseRead):
   const sanctuary = uniq(/sanctuary of battle|god of battle/i);
   const injury = filled.some((h) => h.tags.includes("injury"));
 
+  if (read.watch.some((t) => t.key === "first-cycle")) {
+    push(
+      0,
+      "They extra-turn on the first cycle. A slow tank draft dies before anti-revive matters. Contest the opener, miss the cycle, or live it.",
+    );
+  }
+  if (read.watch.some((t) => t.key === "cannot-miss")) {
+    push(
+      0,
+      "The extra-turn third skill hits everyone even on miss. Evasion does not save you. If a second DPS follows, the fight is over.",
+    );
+  }
+
   if (sanctuary) {
     push(
       0,
@@ -920,6 +933,13 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
       "Injury ignores the speed cap. You are playing the long fight this wall wants, on better terms.",
     );
   }
+  if (read.watch.some((t) => t.key === "first-cycle")) {
+    why.push(
+      read.watch.some((t) => t.key === "cannot-miss")
+        ? "They extra-turn into a third skill that hits even on miss. If a second DPS follows, slow units do not get a turn."
+        : "They extra-turn on the first cycle. Survive or contest that before the rest of the wall matters.",
+    );
+  }
   if (
     names.has("harsetti") &&
     (read.roles.includes("opener") ||
@@ -1102,7 +1122,7 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
     filled.some((h) => h.roles.includes("soulblock"))
   ) {
     why.push(
-      "Belian keeps Frieren under four Soul, so Defensive Magic never comes up.",
+      "Belian keeps Frieren from gaining Soul on her turns, so Defensive Magic stays off even if the fight goes long.",
     );
   }
   if (
@@ -1403,6 +1423,8 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
         "Combat Readiness from Speed is halved. Do not win this as a Speed race.",
       seal: "Seal turns passives off. Do not lean on a buffed opener.",
       cleave: "They want the first cycle. Cap Speed, or survive into the next one.",
+      "first-cycle":
+        "They extra-turn on the first cycle. Anti-revive waits until you survive that.",
       "ew-ludwig":
         "Any Soulburn pushes Eternal Wanderer Ludwig. Do not Soulburn.",
       "dark-moon": "Any Soulburn triggers Dark Moon. Do not Soulburn.",
@@ -1456,6 +1478,30 @@ function recipesFor(read: DefenseRead): Recipe[] {
       (r) => r.id !== "outspeed-cleave" && r.id !== "strip-control",
     );
   }
+  if (read.watch.some((t) => t.key === "first-cycle")) {
+    const inject = read.watch.some((t) => t.key === "cannot-miss")
+      ? (["injury-vs-stall"] as const)
+      : (["evasion-bait", "injury-vs-stall"] as const);
+    for (const id of inject) {
+      if (!hit.some((r) => r.id === id)) {
+        const extra = all.find((r) => r.id === id);
+        if (extra) hit = [...hit, extra];
+      }
+    }
+    const prefer = read.watch.some((t) => t.key === "cannot-miss")
+      ? ["injury-vs-stall", "turn2-control"]
+      : [
+          "evasion-bait",
+          "injury-vs-stall",
+          "outspeed-cleave",
+          "turn2-control",
+        ];
+    hit = [...hit].sort((a, b) => {
+      const ia = prefer.indexOf(a.id);
+      const ib = prefer.indexOf(b.id);
+      return (ia === -1 ? 40 : ia) - (ib === -1 ? 40 : ib);
+    });
+  }
   if (hit.length > 0) return hit;
   return all.filter((r) => r.vs.includes("bruiser-mix"));
 }
@@ -1484,6 +1530,26 @@ export function recommendCounters(
     const filled = fillRecipe(recipe, usable, enemyIds);
     if (filled.heroIds.length < 3) continue;
     const filledHeroes = filled.picks.map((p) => p.hero);
+    const wallOpeners = heroesOf(enemyIds).filter(isFirstCycleOpener);
+    const theirFast = Math.max(0, ...wallOpeners.map((h) => h.baseSpeed ?? 0));
+    const ourFast = Math.max(0, ...filledHeroes.map((h) => h.baseSpeed ?? 0));
+    const gap = theirFast > 0 ? theirFast - ourFast : 0;
+    const cannotMiss = heroesOf(enemyIds).some(hitsEvenOnMiss);
+    if (cannotMiss && recipe.id === "evasion-bait") continue;
+    const race =
+      recipe.id === "outspeed-cleave" ||
+      recipe.id === "anti-revive-burst" ||
+      recipe.id === "strip-control" ||
+      recipe.id === "turn2-control";
+    if (wallOpeners.length > 0 && race) {
+      const contest = filledHeroes.some(
+        (h) =>
+          h.roles.includes("opener") &&
+          Number.isFinite(h.baseSpeed) &&
+          (h.baseSpeed ?? 0) >= theirFast - 8,
+      );
+      if (!contest) continue;
+    }
     const answerable = read.watch.filter(
       (t) =>
         t.answerTags?.length ||
@@ -1498,15 +1564,22 @@ export function recommendCounters(
     const tierAvg =
       filledHeroes.reduce((s, h) => s + TIER_ORDER[h.tier], 0) /
       Math.max(1, filledHeroes.length);
+    let speedAdj = 0;
+    if (gap >= 12 && recipe.id === "injury-vs-stall") speedAdj += 12;
+    if (gap >= 12 && recipe.id === "evasion-bait" && !cannotMiss) speedAdj += 12;
     const score = Math.round(
       Math.min(
         99,
-        20 +
-          filled.coverage * 48 +
-          answered * 8 +
-          tierAvg * 4 +
-          (isTheory ? -8 : 4) -
-          gaps.length * 8,
+        Math.max(
+          1,
+          20 +
+            filled.coverage * 48 +
+            answered * 8 +
+            tierAvg * 4 +
+            (isTheory ? -8 : 4) -
+            gaps.length * 8 +
+            speedAdj,
+        ),
       ),
     );
     results.push({

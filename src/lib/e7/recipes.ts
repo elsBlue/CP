@@ -11,7 +11,7 @@ export const ARCHETYPE_META: Record<
 > = {
   "speed-cleave": {
     title: "Speed cleave",
-    blurb: "This wall is built to take the first turn, strip, and end the cycle with area damage.",
+    blurb: "This wall is built to take the first turn, remove your buffs, and hit everyone.",
     color: "cleave",
   },
   "harsetti-stall": {
@@ -26,7 +26,7 @@ export const ARCHETYPE_META: Record<
   },
   "injury-grind": {
     title: "Injury grind",
-    blurb: "Injury cores grow stronger as the fight goes on. Racing raw Health feeds them.",
+    blurb: "They cut maximum Health as the fight goes on. Racing raw Health feeds them.",
     color: "bruiser",
   },
   "evasion-counter": {
@@ -36,7 +36,7 @@ export const ARCHETYPE_META: Record<
   },
   "turn2-control": {
     title: "Turn-2 control",
-    blurb: "After the first cycle, this wall cuts Combat Readiness and takes the script.",
+    blurb: "After the first cycle, this wall pulls turn bars back and takes over.",
     color: "control",
   },
   "immunity-soul": {
@@ -46,7 +46,7 @@ export const ARCHETYPE_META: Record<
   },
   "bruiser-mix": {
     title: "Mixed bruiser",
-    blurb: "No single gimmick. Bulky units with mixed tools — read the Watch list.",
+    blurb: "No single gimmick. Bulky units with mixed tools.",
     color: "bruiser",
   },
 };

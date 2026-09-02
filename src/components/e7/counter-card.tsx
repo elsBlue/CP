@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
-import { ChevronDown, Info, Pencil } from "lucide-react";
-import { HeroRow } from "@/components/e7/hero-line";
+import { ChevronDown, Pencil } from "lucide-react";
+import { FormationBoard } from "@/components/e7/formation-board";
+import { InfoTip } from "@/components/e7/info-tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { placeLineup } from "@/lib/e7/formation";
 import { winRate } from "@/lib/e7/stats";
 import type { CounterTeam } from "@/lib/e7/types";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,6 @@ export function CounterCard({
 }) {
   const slots = Math.round(team.coverage * 4);
   const rate = record ? winRate(record.wins, record.n) : null;
-  const [gapInfo, setGapInfo] = useState<string | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -100,7 +100,7 @@ export function CounterCard({
               />
             </div>
           </div>
-          <HeroRow ids={team.heroIds} />
+          <FormationBoard ids={placeLineup(team.heroIds)} compact />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 px-4 sm:px-5">
@@ -115,27 +115,12 @@ export function CounterCard({
           </Badge>
         ))}
         {team.gaps.map((g) => (
-          <Tooltip
-            key={g}
-            open={gapInfo === g}
-            onOpenChange={(open) => setGapInfo(open ? g : null)}
-          >
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex [-webkit-tap-highlight-color:transparent]"
-                aria-label={`About no ${g}`}
-              >
-                <Badge variant="loss" className="gap-1 pr-2">
-                  No {g}
-                  <Info className="size-3 shrink-0" strokeWidth={2.25} />
-                </Badge>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top" align="start" className="max-w-[16rem] leading-relaxed">
+          <span key={g} className="inline-flex items-center gap-0.5">
+            <Badge variant="loss">No {g}</Badge>
+            <InfoTip label={`About no ${g}`} side="top">
               {gapHint(g)}
-            </TooltipContent>
-          </Tooltip>
+            </InfoTip>
+          </span>
         ))}
         {record && record.n > 0 ? (
           <Badge variant={rate !== null && rate >= 50 ? "win" : "outline"}>

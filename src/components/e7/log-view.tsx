@@ -7,6 +7,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { toast } from "sonner";
 import { HeroRow } from "@/components/e7/hero-line";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import {
+  buildFightDump,
+  copyFightDump,
+  downloadFightDump,
+} from "@/lib/e7/export-stats";
 import { ARCHETYPE_META } from "@/lib/e7/recipes";
 import { nextDivision, divisionForVp, rankProgress } from "@/lib/e7/ranks";
 import { groupByArchetype, groupByRecipe, winRate } from "@/lib/e7/stats";
@@ -25,6 +31,9 @@ export function LogView() {
   const matches = useArenaStore((s) => s.matches);
   const removeMatch = useArenaStore((s) => s.removeMatch);
   const clearMatches = useArenaStore((s) => s.clearMatches);
+
+  const restrictToRoster = useArenaStore((s) => s.restrictToRoster);
+  const roster = useArenaStore((s) => s.roster);
 
   const rank = divisionForVp(vp);
   const nxt = nextDivision(vp);
@@ -44,6 +53,10 @@ export function LogView() {
     }
     return points.reverse().map((p, i) => ({ ...p, i }));
   }, [matches, vp]);
+
+  function dump() {
+    return buildFightDump({ vp, matches, roster, restrictToRoster });
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -200,11 +213,34 @@ export function LogView() {
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl tracking-tight">Fights</h2>
-          {matches.length > 0 ? (
-            <Button size="sm" variant="ghost" onClick={clearMatches}>
-              Clear
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                downloadFightDump(dump());
+                toast("Saved crownpath-stats file");
+              }}
+            >
+              Export
             </Button>
-          ) : null}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                void copyFightDump(dump())
+                  .then(() => toast("Copied. Paste it here."))
+                  .catch(() => toast.error("Could not copy"));
+              }}
+            >
+              Copy
+            </Button>
+            {matches.length > 0 ? (
+              <Button size="sm" variant="ghost" onClick={clearMatches}>
+                Clear
+              </Button>
+            ) : null}
+          </div>
         </div>
         {matches.length === 0 ? (
           <Card>

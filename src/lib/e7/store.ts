@@ -48,7 +48,7 @@ const emptyState = {
   lastTeam: emptySlots(),
   vp: DEFAULT_VP,
   matches: [] as MatchLog[],
-  restrictToRoster: true,
+  restrictToRoster: false,
 };
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined;

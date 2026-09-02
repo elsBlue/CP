@@ -109,7 +109,10 @@ export function HeroPicker({
         onOpenChange(v);
       }}
     >
-      <SheetContent side={wide ? "right" : "bottom"} className="gap-0">
+      <SheetContent
+        side={wide ? "right" : "bottom"}
+        className={cn("gap-0", !wide && "h-[92dvh] max-h-[92dvh]")}
+      >
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
@@ -215,7 +218,7 @@ export function HeroPicker({
             </button>
           ) : null}
         </div>
-        <ScrollArea className={wide ? "h-full min-h-0 flex-1" : "h-[42dvh]"}>
+        <ScrollArea className="h-full min-h-0 flex-1">
           <ul className="grid grid-cols-1 gap-1 px-3 pb-6 sm:grid-cols-2">
             {list.map((hero) => {
               const locked = takenSet.has(hero.id);

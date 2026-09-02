@@ -173,32 +173,32 @@ export const EFFECT_IDS: NormalEffect[] = [
 
 export const EFFECT_LABEL: Record<NormalEffect, string> = {
   revive: "Revive",
-  extinction: "Extinction / Cannot Revive",
-  "increase-cr": "Increase Combat Readiness",
-  "decrease-cr": "Decrease Combat Readiness",
-  "extra-turn": "Extra Turn",
-  "ally-cd-decrease": "Ally Cooldown Decrease",
-  "enemy-cd-increase": "Enemy Cooldown Increase",
+  extinction: "Cannot revive",
+  "increase-cr": "Pushes the turn bar forward",
+  "decrease-cr": "Pushes the turn bar back",
+  "extra-turn": "Takes another turn immediately",
+  "ally-cd-decrease": "Shortens an ally's cooldown",
+  "enemy-cd-increase": "Lengthens an enemy's cooldown",
   "increase-hit": "Increase Hit Chance",
   "increase-evasion": "Increase Evasion",
-  "always-crit": "Always Critical Hit on Successful Attack",
-  "damage-reduction": "Damage Reduction",
-  "damage-sharing": "Damage Sharing",
-  "ignore-damage-sharing": "Ignore Damage Sharing",
-  "damage-received-limit": "Damage Received Limit",
+  "always-crit": "Always crits when the attack lands",
+  "damage-reduction": "Damage reduction",
+  "damage-sharing": "Damage sharing",
+  "ignore-damage-sharing": "Ignores damage sharing",
+  "damage-received-limit": "Damage received limit",
   "increase-crit-resist": "Increase Critical Hit Resistance",
   "increase-pen-resist": "Increase Penetration Resistance",
-  "soul-removal": "Soul Removal",
-  "resource-reduction": "Resource Reduction",
-  "barrier-inversion": "Barrier Inversion",
-  "buff-dispel": "Buff Dispel",
-  "debuff-dispel": "Debuff Dispel",
-  "buff-duration-decrease": "Buff Duration Decrease",
-  "debuff-duration-decrease": "Debuff Duration Decrease",
-  "dual-attack": "Dual Attack",
-  injury: "Injury",
+  "soul-removal": "Removes souls",
+  "resource-reduction": "Cuts Focus / Fighting Spirit gain",
+  "barrier-inversion": "Turns Barrier into damage",
+  "buff-dispel": "Removes buffs",
+  "debuff-dispel": "Removes debuffs",
+  "buff-duration-decrease": "Shortens buffs",
+  "debuff-duration-decrease": "Shortens debuffs",
+  "dual-attack": "Ally hits with them",
+  injury: "Cuts max Health",
   counterattack: "Counterattack",
-  "cannot-counterattack": "Cannot Counterattack",
+  "cannot-counterattack": "Cannot counterattack",
 };
 
 export type UniqueEffect = {
@@ -227,6 +227,7 @@ export type Hero = {
   kit: string;
   defense: number;
   offense: number;
+  baseSpeed?: number;
   icon?: string;
   verified?: boolean;
   checkedAt?: string;

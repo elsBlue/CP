@@ -33,6 +33,7 @@ import { CLASS_LABEL, ELEMENT_LABEL, heroRarity } from "@/lib/e7/heroes";
 import { fileToHeroIcon } from "@/lib/e7/icon";
 import { isOwnerIdentity } from "@/lib/e7/owner";
 import { ARCHETYPE_META } from "@/lib/e7/recipes";
+import { downloadJson } from "@/lib/e7/export-stats";
 import { useArenaStore } from "@/lib/e7/store";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import {
@@ -197,6 +198,7 @@ function HeroAdmin() {
               kit: "",
               defense: 5,
               offense: 5,
+              baseSpeed: undefined,
               icon: "",
               verified: false,
             })
@@ -480,6 +482,19 @@ function HeroForm({
         </Field>
         <Field label="Offense 0–10">
           <Input type="number" min={0} max={10} value={form.offense} onChange={(e) => patch({ offense: Number(e.target.value) })} />
+        </Field>
+        <Field label="Base Speed">
+          <Input
+            type="number"
+            min={70}
+            max={160}
+            value={form.baseSpeed ?? ""}
+            onChange={(e) =>
+              patch({
+                baseSpeed: e.target.value === "" ? undefined : Number(e.target.value),
+              })
+            }
+          />
         </Field>
       </div>
       <div className="mt-4">
@@ -1193,6 +1208,25 @@ function AnalyticsPanel() {
         Fills from Won / Lost on Scout. Stay on — generated strategies later will use this.
         {fights === 0 ? " No fights recorded yet." : ` ${fights} recorded.`}
       </p>
+      <div className="flex gap-1">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            downloadJson(`crownpath-analytics-${new Date().toISOString().slice(0, 10)}.json`, {
+              app: "crownpath",
+              v: 1,
+              kind: "analytics",
+              exportedAt: new Date().toISOString(),
+              walls: data.walls,
+              recipes: data.recipes,
+            });
+            toast("Saved analytics file");
+          }}
+        >
+          Export
+        </Button>
+      </div>
       <section>
         <h2 className="mb-2 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
           By wall type

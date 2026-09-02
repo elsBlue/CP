@@ -25,6 +25,7 @@ export function RosterView() {
   const [query, setQuery] = useState("");
   const [onlyBuilt, setOnlyBuilt] = useState(false);
   const [kit, setKit] = useState<KitFilter>("all");
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const built = builtIds(roster);
   const verifiedN = heroes.filter((h) => h.verified).length;
@@ -48,7 +49,8 @@ export function RosterView() {
           Your roster
         </h1>
         <p className="max-w-lg text-sm text-muted-foreground">
-          Tap to mark built. Scout uses verified kits you have built.
+          Tap to mark built. That is a note of what you have — Scout does not require it.
+          Turn on Only built units there if you want lineups from this list.
         </p>
       </header>
 
@@ -61,15 +63,44 @@ export function RosterView() {
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
-          <Button size="sm" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => loadPresetRoster("challenger")}>
-            Full kit
-          </Button>
-          <Button size="sm" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => loadPresetRoster("starter")}>
-            Starter
-          </Button>
-          <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => loadPresetRoster("clear")}>
-            Clear
-          </Button>
+          {confirmClear ? (
+            <>
+              <p className="w-full text-sm text-muted-foreground">
+                Clear all built marks? This cannot be undone.
+              </p>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 px-2.5 text-xs"
+                onClick={() => setConfirmClear(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-8 px-2.5 text-xs"
+                onClick={() => {
+                  loadPresetRoster("clear");
+                  setConfirmClear(false);
+                }}
+              >
+                Clear all
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => loadPresetRoster("challenger")}>
+                Full kit
+              </Button>
+              <Button size="sm" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => loadPresetRoster("starter")}>
+                Starter
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => setConfirmClear(true)}>
+                Clear
+              </Button>
+            </>
+          )}
         </div>
         <Input
           value={query}
