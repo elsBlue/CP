@@ -9,7 +9,7 @@ export function BootScreen({ label = "Loading data…" }: { label?: string }) {
   }, []);
 
   return (
-    <div className="relative grid min-h-dvh place-items-center overflow-hidden bg-background px-6 text-foreground">
+    <div className="relative grid h-full min-h-full place-items-center overflow-hidden bg-background px-6 text-foreground">
       <div className="pointer-events-none absolute inset-0 md:grid md:place-items-center">
         <div
           className="boot-shade absolute inset-0 overflow-hidden md:relative md:inset-auto md:rounded-full"

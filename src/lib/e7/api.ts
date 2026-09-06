@@ -4,6 +4,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { HEROES, SAMPLE_ROSTER, heroRarity } from "./heroes";
 import { heroEffects } from "./effects";
+import type { ScoutMode } from "./formation";
 import { isOwnerIdentity } from "./owner";
 import { DEFAULT_VP } from "./ranks";
 import { ARCHETYPE_META, PRESET_DEFENSES, RECIPES } from "./recipes";
@@ -20,6 +21,8 @@ import type {
   RecipeStat,
   RosterEntry,
   SlotNeed,
+  StrategyIdea,
+  StrategyIdeaStatus,
   UniqueEffect,
   WallStat,
 } from "./types";
@@ -154,6 +157,64 @@ function padFour(ids: string[]): string[] {
   return next;
 }
 
+function padThree(ids: string[]): string[] {
+  const next = ["", "", ""];
+  ids.slice(0, 3).forEach((id, i) => {
+    next[i] = id ?? "";
+  });
+  return next;
+}
+
+type ScoutBlob = {
+  v: 2 | 3;
+  mode: ScoutMode;
+  arena: string[];
+  gw: string[];
+  gw2?: string[];
+  gwRound?: 1 | 2;
+};
+
+function packScout(
+  mode: ScoutMode,
+  arena: string[],
+  gw: string[],
+  gw2: string[] = [],
+  gwRound: 1 | 2 = 1,
+): ScoutBlob {
+  return {
+    v: 3,
+    mode,
+    arena: padFour(arena),
+    gw: padFour(gw),
+    gw2: padFour(gw2),
+    gwRound,
+  };
+}
+
+function unpackScout(raw: unknown): {
+  mode: ScoutMode;
+  arena: string[];
+  gw: string[];
+  gw2: string[];
+  gwRound: 1 | 2;
+} {
+  const value = parseJson<unknown>(raw, raw);
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const blob = value as ScoutBlob;
+    if (blob.v === 2 || blob.v === 3) {
+      return {
+        mode: blob.mode === "arena" ? "arena" : "gw",
+        arena: padFour(asStringList(blob.arena)),
+        gw: padFour(asStringList(blob.gw)),
+        gw2: padFour(asStringList(blob.gw2)),
+        gwRound: blob.gwRound === 2 ? 2 : 1,
+      };
+    }
+  }
+  const arr = asStringList(value);
+  return { mode: "gw", arena: padFour(arr), gw: padFour([]), gw2: padFour([]), gwRound: 1 };
+}
+
 function defaultEnemy(): string[] {
   return ["", "", "", ""];
 }
@@ -221,13 +282,19 @@ async function ensureCatalog() {
     if (h.verified) continue;
     await sql`
       update heroes set
-        roles = '[]'::jsonb,
-        tags = '[]'::jsonb,
-        effects = '[]'::jsonb,
-        buffs = '[]'::jsonb,
-        debuffs = '[]'::jsonb,
-        unique_effects = '[]'::jsonb,
-        kit = ''
+        short = ${h.short},
+        roles = ${JSON.stringify(h.roles)}::jsonb,
+        tags = ${JSON.stringify(h.tags)}::jsonb,
+        effects = ${JSON.stringify(heroEffects(h))}::jsonb,
+        buffs = ${JSON.stringify(h.buffs ?? [])}::jsonb,
+        debuffs = ${JSON.stringify(h.debuffs ?? [])}::jsonb,
+        unique_effects = ${JSON.stringify(h.uniqueEffects ?? [])}::jsonb,
+        kit = ${h.kit},
+        defense = ${h.defense},
+        offense = ${h.offense},
+        base_speed = ${h.baseSpeed ?? null},
+        verified = false,
+        checked_at = null
       where id = ${h.id} and verified = false
     `;
   }
@@ -421,6 +488,12 @@ function eventSummary(action: string, names: string[]): string {
       return `Role · ${list}`;
     case "member.name":
       return `In-game name · ${list}`;
+    case "idea.submit":
+      return many ? `Logged ideas · ${list}` : `Logged idea · ${list}`;
+    case "idea.status":
+      return many ? `Reviewed ideas · ${list}` : `Reviewed idea · ${list}`;
+    case "idea.delete":
+      return many ? `Removed ideas · ${list}` : `Removed idea · ${list}`;
     default:
       return list || action;
   }
@@ -500,6 +573,11 @@ export type ArenaPayload = {
   vp: number;
   restrictToRoster: boolean;
   enemy: string[];
+  enemyArena: string[];
+  enemyGw: string[];
+  enemyGw2: string[];
+  gwRound: 1 | 2;
+  scoutMode: ScoutMode;
   lastTeam: string[];
   roster: Record<string, RosterEntry>;
   matches: MatchLog[];
@@ -542,11 +620,16 @@ export const getArena = createServerFn({ method: "GET" })
       limit 80
     `;
     const row = states[0];
-    const storedEnemy = asStringList(row?.enemy);
+    const scout = unpackScout(row?.enemy);
     return {
       vp: Number(row?.vp ?? DEFAULT_VP),
       restrictToRoster: Boolean(row?.restrict_to_roster ?? false),
-      enemy: padFour(storedEnemy.some(Boolean) ? storedEnemy : defaultEnemy()),
+      enemy: scout.mode === "gw" ? (scout.gwRound === 2 ? scout.gw2 : scout.gw) : scout.arena,
+      enemyArena: scout.arena,
+      enemyGw: scout.gw,
+      enemyGw2: scout.gw2,
+      gwRound: scout.gwRound,
+      scoutMode: scout.mode,
       lastTeam: padFour(asStringList(row?.last_team)),
       roster: parseJson<Record<string, RosterEntry>>(row?.roster, defaultRoster()),
       role,
@@ -573,6 +656,10 @@ const arenaStateSchema = z.object({
   enemy: z.array(z.string()).max(4),
   lastTeam: z.array(z.string()).max(4),
   roster: z.record(z.string(), z.object({ owned: z.boolean(), built: z.boolean() })),
+  scoutMode: z.enum(["gw", "arena"]).optional(),
+  enemyGw: z.array(z.string()).max(4).optional(),
+  enemyGw2: z.array(z.string()).max(4).optional(),
+  gwRound: z.union([z.literal(1), z.literal(2)]).optional(),
 });
 
 export const saveArena = createServerFn({ method: "POST" })
@@ -581,11 +668,19 @@ export const saveArena = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await ensureProfile(context.userId);
     const sql = await getSql();
+    const mode: ScoutMode = data.scoutMode === "arena" ? "arena" : "gw";
+    const packed = packScout(
+      mode,
+      data.enemy,
+      data.enemyGw ?? [],
+      data.enemyGw2 ?? [],
+      data.gwRound === 2 ? 2 : 1,
+    );
     await sql`
       insert into arena_state (user_id, vp, restrict_to_roster, enemy, last_team, roster, updated_at)
       values (
         ${context.userId}, ${data.vp}, ${data.restrictToRoster},
-        ${JSON.stringify(padFour(data.enemy))}::jsonb,
+        ${JSON.stringify(packed)}::jsonb,
         ${JSON.stringify(padFour(data.lastTeam))}::jsonb,
         ${JSON.stringify(data.roster)}::jsonb,
         now()
@@ -1028,4 +1123,124 @@ export const getAnalytics = createServerFn({ method: "GET" })
       };
     });
     return { recipes, walls };
+  });
+
+const IDEA_STATUSES: StrategyIdeaStatus[] = ["inbox", "keep", "skip", "later"];
+
+function ideaSnippet(body: string): string {
+  const t = body.replace(/\s+/g, " ").trim();
+  return t.length <= 48 ? t : `${t.slice(0, 45)}…`;
+}
+
+async function loadIdeas(): Promise<StrategyIdea[]> {
+  const sql = await getSql();
+  const rows = await sql<{
+    id: string;
+    body: string;
+    about: string;
+    status: string;
+    verdict: string;
+    created_by: string;
+    at: string | number | Date;
+  }>`
+    select id, body, about, status, verdict, created_by,
+      (extract(epoch from created_at) * 1000)::bigint as at
+    from strategy_ideas
+    order by
+      case status when 'inbox' then 0 when 'later' then 1 when 'keep' then 2 else 3 end,
+      created_at desc
+  `;
+  const labels = new Map<string, string>();
+  for (const id of new Set(rows.map((r) => r.created_by))) {
+    labels.set(id, await actorLabel(id));
+  }
+  return rows.map((r) => ({
+    id: r.id,
+    body: r.body,
+    about: r.about ?? "",
+    status: IDEA_STATUSES.includes(r.status as StrategyIdeaStatus)
+      ? (r.status as StrategyIdeaStatus)
+      : "inbox",
+    verdict: r.verdict ?? "",
+    author: labels.get(r.created_by) || "Admin",
+    at: Number(r.at ?? Date.now()),
+  }));
+}
+
+export const listStrategyIdeas = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }): Promise<StrategyIdea[]> => {
+    await requireAdmin(context.userId);
+    return loadIdeas();
+  });
+
+export const saveStrategyIdea = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(
+    z.object({
+      body: z.string().trim().min(8).max(2000),
+      about: z.string().trim().max(120).optional().default(""),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    await requireAdmin(context.userId);
+    const sql = await getSql();
+    const id = crypto.randomUUID();
+    await sql`
+      insert into strategy_ideas (id, body, about, created_by)
+      values (${id}, ${data.body}, ${data.about ?? ""}, ${context.userId})
+    `;
+    await recordAdminEvent(context.userId, "idea.submit", {
+      id,
+      name: ideaSnippet(data.body),
+    });
+    return loadIdeas();
+  });
+
+export const setStrategyIdeaStatus = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(
+    z.object({
+      id: z.string().min(1).max(64),
+      status: z.enum(["inbox", "keep", "skip", "later"]),
+      verdict: z.string().trim().max(800).optional().default(""),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    await requireAdmin(context.userId);
+    const sql = await getSql();
+    const prev = await sql<{ body: string }>`
+      select body from strategy_ideas where id = ${data.id}
+    `;
+    if (!prev[0]) throw new Error("Idea not found");
+    await sql`
+      update strategy_ideas
+      set status = ${data.status},
+          verdict = ${data.verdict ?? ""},
+          updated_at = now()
+      where id = ${data.id}
+    `;
+    await recordAdminEvent(context.userId, "idea.status", {
+      id: data.id,
+      name: ideaSnippet(prev[0].body),
+    });
+    return loadIdeas();
+  });
+
+export const deleteStrategyIdea = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(z.object({ id: z.string().min(1).max(64) }))
+  .handler(async ({ context, data }) => {
+    await requireAdmin(context.userId);
+    const sql = await getSql();
+    const prev = await sql<{ body: string }>`
+      select body from strategy_ideas where id = ${data.id}
+    `;
+    if (!prev[0]) throw new Error("Idea not found");
+    await sql`delete from strategy_ideas where id = ${data.id}`;
+    await recordAdminEvent(context.userId, "idea.delete", {
+      id: data.id,
+      name: ideaSnippet(prev[0].body),
+    });
+    return loadIdeas();
   });

@@ -174,8 +174,8 @@ export const EFFECT_IDS: NormalEffect[] = [
 export const EFFECT_LABEL: Record<NormalEffect, string> = {
   revive: "Revive",
   extinction: "Cannot revive",
-  "increase-cr": "Pushes the turn bar forward",
-  "decrease-cr": "Pushes the turn bar back",
+  "increase-cr": "Pushes Combat Readiness forward",
+  "decrease-cr": "Pushes Combat Readiness back",
   "extra-turn": "Takes another turn immediately",
   "ally-cd-decrease": "Shortens an ally's cooldown",
   "enemy-cd-increase": "Lengthens an enemy's cooldown",
@@ -284,6 +284,7 @@ export type CounterTeam = {
   recipeId: string;
   name: string;
   heroIds: string[];
+  seats: 3 | 4;
   score: number;
   coverage: number;
   wincon: string;
@@ -345,6 +346,18 @@ export type AdminLogRow = {
   at: number;
   actor: string;
   summary: string;
+};
+
+export type StrategyIdeaStatus = "inbox" | "keep" | "skip" | "later";
+
+export type StrategyIdea = {
+  id: string;
+  body: string;
+  about: string;
+  status: StrategyIdeaStatus;
+  verdict: string;
+  author: string;
+  at: number;
 };
 
 export type RecipeStat = {

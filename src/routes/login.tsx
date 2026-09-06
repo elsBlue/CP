@@ -66,7 +66,7 @@ function Login() {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-background px-4 text-foreground">
+    <main className="grid h-full min-h-full place-items-center bg-background px-4 text-foreground">
       <div className="w-full max-w-sm">
         <Brand size="lg" />
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">

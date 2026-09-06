@@ -68,7 +68,7 @@ export function LogView() {
           Fight log
         </h1>
         <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
-          Won and Lost on Scout write here. They stay on your account.
+          Older fights stay here. Scout no longer records Won or Lost.
         </p>
       </header>
 
@@ -111,7 +111,7 @@ export function LogView() {
               {matches.length === 0 ? "No fights yet" : `${wins}W · ${matches.length - wins}L`}
             </p>
             <p className="text-xs text-muted-foreground">
-              Won and Lost on Scout write here. They stay on your account.
+              Past fights only. Scout no longer records new ones.
             </p>
           </CardContent>
         </Card>
@@ -245,7 +245,7 @@ export function LogView() {
         {matches.length === 0 ? (
           <Card>
             <CardContent className="p-5 text-sm text-muted-foreground">
-              After a scout, tap Won or Lost on a strategy. The record lives on your account.
+              No new fights from Scout. Export still works from Admin → Stats.
             </CardContent>
           </Card>
         ) : (

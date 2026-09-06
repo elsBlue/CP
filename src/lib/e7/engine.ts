@@ -26,6 +26,11 @@ export function heroesOf(ids: string[]): Hero[] {
 function unique<T>(arr: T[]): T[] {
   return [...new Set(arr)];
 }
+function isReviveUnique(name: string) {
+  return /fragment of life|time reversal|sacred covenant|spirit gate|soul exchange|dark contract|vip treatment|spirit lord|superhumanization|it's time to be reborn/i.test(
+    name,
+  );
+}
 export function classifyDefense(ids: string[]): DefenseRead | null {
   const heroes = heroesOf(ids);
   if (heroes.length === 0) return null;
@@ -64,11 +69,7 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
       idSet.has("lisette") ||
       idSet.has("spirit-eye-celine") ||
       idSet.has("apocalypse-ravi") ||
-      uniqueEffects.some((u) =>
-        /fragment of life|time reversal|sacred covenant|grudge|spirit gate|soul exchange|dark contract|vip treatment|superhumanization|it's time to be reborn/i.test(
-          u.name,
-        ),
-      )
+      uniqueEffects.some((u) => isReviveUnique(u.name))
     ) {
       scores["revive-wall"] += 3;
     }
@@ -82,7 +83,8 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
         h.id === "twisted-eidolon-kayron" ||
         h.id === "monarch-of-the-sword-iseria" ||
         h.id === "disciplinary-prefect-aria" ||
-        h.id === "death-dealer-ray",
+        h.id === "death-dealer-ray" ||
+        h.id === "alencia",
     ).length;
     const injuryN = trusted.filter(
       (h) =>
@@ -112,7 +114,11 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
         (h.tags.includes("evade") || h.roles.includes("evasion")) &&
         h.id !== "lone-crescent-bellona" &&
         h.id !== "lone-wolf-peira" &&
-        h.id !== "rhianna-and-luciella",
+        h.id !== "rhianna-and-luciella" &&
+        h.id !== "violet" &&
+        h.id !== "ae-winter" &&
+        h.id !== "festive-eda" &&
+        h.id !== "afternoon-soak-flan",
     ).length;
     if (evadeCore > 0)
       scores["evasion-counter"] += 6 + (evadeCore > 1 ? 3 : 0);
@@ -294,6 +300,8 @@ function slotScore(
     "spirit-eye-celine",
     "apocalypse-ravi",
     "blood-moon-haste",
+    "destina",
+    "roana",
   ]);
   const picked = used ?? new Set<string>();
   const curseOn =
@@ -311,6 +319,7 @@ function fillRecipe(
   recipe: Recipe,
   pool: Hero[],
   enemyIds: string[],
+  seats: 3 | 4 = 4,
 ): {
   picks: { label: string; hero: Hero }[];
   heroIds: string[];
@@ -330,7 +339,7 @@ function fillRecipe(
   const ferocious = wallHeroes.some((h) =>
     (h.uniqueEffects ?? []).some((u) => /ferocious stand/i.test(u.name)),
   );
-  for (const need of recipe.slots) {
+  for (const need of recipe.slots.slice(0, seats)) {
     let best: Hero | null = null;
     let bestScore = 0;
     for (const hero of pool) {
@@ -367,7 +376,7 @@ function fillRecipe(
     picks,
     heroIds: picks.map((p) => p.hero.id),
     missing,
-    coverage: (4 - missing.length) / 4,
+    coverage: (seats - missing.length) / seats,
   };
 }
 function jobFor(
@@ -421,7 +430,7 @@ function jobFor(
     case "diene":
       return `${n} is cleanse and barrier. She does not grant team Immunity.`;
     case "blood-moon-haste":
-      return `${n} is sustain and a strip. A kill with Moon Slash revives the bench \u2014 anti-revive still shuts that.`;
+      return `${n} is sustain and a strip. Moon Slash only revives if that third skill gets a kill — a clutch, not a reset wall.`;
     case "briar-witch-iseria":
       if (ctx?.sanctuary) {
         return ctx.wallRevive
@@ -559,10 +568,48 @@ function jobFor(
       return `${n} starts with evasion for one turn. After an ally hits a unit under 40% Health, he pushes Combat Readiness. Descent does not trigger counters.`;
     case "politis":
       return `${n} cuts Combat Readiness gain by half and clips buff duration when they use a non-attack skill. Starfall is Cannot Buff. She is not a soul lock.`;
+    case "uncharted-pioneer-politis":
+      return `${n} is the area strip, then cooldown +1. Additional damage still lands if the attack misses. Extra turn is after the mission, not turn 1.`;
     case "lisette":
       return `${n} is the reset. Dead allies return as Fragment of Life; Time Reversal rolls the fight back. Anti-revive shuts both.`;
     case "designer-lilibet":
       return `${n} converts your debuffs into Fighting Spirit, then self-cleanses and grants herself Immunity. Model Disqualification is area penetrate, not injury.`;
+    case "abigail":
+      return `${n} is the injury strip. Scarlet Garden strips then injures; Blood Banquet Immortality-saves the back row.`;
+    case "adventurer-ras":
+      return `${n} is the Dual Attack after Command Strike. Purifying Flame is Increase Defense on the team, not a strip.`;
+    case "ae-giselle":
+      return `${n} is the Frame of Light kill extra turn. Linguistic Wisdom is self Combat Readiness amplify, not a team opener.`;
+    case "ae-karina":
+      return `${n} is the Defense-scale punch. Rocket Punch barriers the team when an ally drops to half.`;
+    case "ae-ningning":
+      return `${n} is the barrier inversion strip. System Hacking turns barriers into damage.`;
+    case "ae-winter":
+      return `${n} is the Black Out stun; extra damage on crit grows each use. Stealth is on herself, not a miss nest.`;
+    case "afternoon-soak-flan":
+      return `${n} Dual Attacks from Focus; her own-turn basic hits everyone and always crits. Self evasion is not a miss nest.`;
+    case "aki":
+      return `${n} is the burn detonate strip. Soulburn spends Health for an extra turn, not turn 1.`;
+    case "albedo":
+      return `${n} is the Bicorn counter after an ally crit. Rage of Nazarick is Cannot Buff, not Seal.`;
+    case "alencia":
+      return `${n} is area injury while Mind's Eye is up. Trample is an extra attack, not Dual Attack; Genesis strips then grants Defense Up.`;
+    case "amid":
+      return `${n} is the Forest Blessing extra turn; Skill Nullifier is once on the whole team. Touch of Hope is Swift Attack, not an opener.`;
+    case "aram":
+      return `${n} is Rapid Rescue Combat Readiness; that skill ignores cooldown manip. Warming Up is after an area attack, not turn 1.`;
+    case "aramintha":
+      return `${n} is the area strip and Unhealable. Fire Pillar stuns; Soulburn ignores Effect Resistance.`;
+    case "argent-waves-hwayoung":
+      return `${n} Swallow Kicks after an ally non-attack; with Vigor she extra-turns. Lightning Kicks strips one. Extra turn is not turn 1.`;
+    case "aria":
+      return `${n} puts Stealth and Barrier on allies, Counterattack on herself. Dark Shadow Phantom strips two and cuts Combat Readiness when Focus is full. Extra turn is Soulburn only.`;
+    case "arunka":
+      return `${n} is the barrier check. Expose is an extra attack, not Dual Attack. Thrashing Extinction applies only if that skill kills.`;
+    case "aubade-ludwig":
+      return `${n} strips two, then Block and Silence. With Dawn, Light of Condemnation spends all Souls for extra area damage. Extra attack is not Dual Attack.`;
+    case "aube":
+      return `${n} grants Cascade and Skill Nullifier, then extra-turns. Eternal Moment strips two, then Immobilize and Restrict. Concealment is not Illusion — area skills still hit her.`;
     default:
       break;
   }
@@ -616,11 +663,7 @@ function setupFor(
   );
   const wallRevive =
     read.roles.includes("revive") ||
-    read.uniqueEffects.some((u) =>
-      /covenant|fragment of life|time reversal|grudge|blood aura|spirit gate|soul exchange|dark contract|vip treatment|spirit lord|superhumanization|it's time to be reborn/i.test(
-        u.name,
-      ),
-    );
+    read.uniqueEffects.some((u) => isReviveUnique(u.name));
   const wallCounters =
     read.tags.includes("counter") ||
     read.watch.some((t) => t.key === "evade" || t.key === "no-counter") ||
@@ -658,7 +701,9 @@ function pitfallsFor(picks: { label: string; hero: Hero }[], read: DefenseRead):
   if (read.watch.some((t) => t.key === "first-cycle")) {
     push(
       0,
-      "They extra-turn on the first cycle. A slow tank draft dies before anti-revive matters. Contest the opener, miss the cycle, or live it.",
+      read.roles.includes("revive")
+        ? "They extra-turn on the first cycle. A slow tank draft dies before anti-revive matters. Contest the opener, miss the cycle, or live it."
+        : "They extra-turn on the first cycle. A slow tank draft dies before the rest of the wall matters. Contest the opener, miss the cycle, or live it.",
     );
   }
   if (read.watch.some((t) => t.key === "cannot-miss")) {
@@ -694,7 +739,7 @@ function pitfallsFor(picks: { label: string; hero: Hero }[], read: DefenseRead):
   }
   if (
     !sanctuary &&
-    uniq(/cascade|lullaby for waves/i) &&
+    uniq(/lullaby for waves/i) &&
     filled.some(
       (h) =>
         h.tags.includes("stun") ||
@@ -921,8 +966,8 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
   if (blocked) {
     why.push(
       filled.some((h) => h.tags.includes("injury"))
-        ? "Block after her strip: you cannot receive buffs, and other heroes cannot cleanse you. Injury still stacks."
-        : "Block after her strip: you cannot receive buffs, and other heroes cannot cleanse you. Do not plan Immunity through it.",
+        ? "Block after the strip: you cannot receive buffs, and other heroes cannot cleanse you. Injury still stacks."
+        : "Block after the strip: you cannot receive buffs, and other heroes cannot cleanse you. Do not plan Immunity through it.",
     );
   }
   if (
@@ -993,11 +1038,7 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
   if (names.has("briar-witch-iseria")) {
     const reviveOnWall =
       read.roles.includes("revive") ||
-      read.uniqueEffects.some((u) =>
-        /covenant|fragment of life|time reversal|grudge|blood aura|spirit gate|soul exchange|dark contract|vip treatment|spirit lord|superhumanization|it's time to be reborn/i.test(
-          u.name,
-        ),
-      );
+      read.uniqueEffects.some((u) => isReviveUnique(u.name));
     const soulblock = read.roles.includes("soulblock");
     if (reviveOnWall) {
       why.push(
@@ -1138,14 +1179,6 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
   ) {
     why.push(
       "Anti-revive shuts the Covenant revive. After five turns he is only a knight.",
-    );
-  }
-  if (
-    read.uniqueEffects.some((u) => /grudge|blood aura/i.test(u.name)) &&
-    filled.some((h) => h.tags.includes("anti-revive"))
-  ) {
-    why.push(
-      "Anti-revive stops Moon Slash from bringing the bench back. Do not give him the last hit.",
     );
   }
   if (names.has("frieren") && filled.some((h) => h.tags.includes("evade"))) {
@@ -1479,23 +1512,28 @@ function recipesFor(read: DefenseRead): Recipe[] {
     );
   }
   if (read.watch.some((t) => t.key === "first-cycle")) {
-    const inject = read.watch.some((t) => t.key === "cannot-miss")
-      ? (["injury-vs-stall"] as const)
-      : (["evasion-bait", "injury-vs-stall"] as const);
+    const race = read.archetype === "speed-cleave";
+    const cannotMiss = read.watch.some((t) => t.key === "cannot-miss");
+    const inject =
+      cannotMiss || !race
+        ? (["injury-vs-stall"] as const)
+        : (["evasion-bait", "injury-vs-stall"] as const);
     for (const id of inject) {
       if (!hit.some((r) => r.id === id)) {
         const extra = all.find((r) => r.id === id);
         if (extra) hit = [...hit, extra];
       }
     }
-    const prefer = read.watch.some((t) => t.key === "cannot-miss")
+    const prefer = cannotMiss
       ? ["injury-vs-stall", "turn2-control"]
-      : [
-          "evasion-bait",
-          "injury-vs-stall",
-          "outspeed-cleave",
-          "turn2-control",
-        ];
+      : race
+        ? [
+            "evasion-bait",
+            "injury-vs-stall",
+            "outspeed-cleave",
+            "turn2-control",
+          ]
+        : ["injury-vs-stall", "turn2-control", "strip-control"];
     hit = [...hit].sort((a, b) => {
       const ia = prefer.indexOf(a.id);
       const ib = prefer.indexOf(b.id);
@@ -1508,6 +1546,7 @@ function recipesFor(read: DefenseRead): Recipe[] {
 export function recommendCounters(
   enemyIds: string[],
   poolIds: string[] | null,
+  seats: 3 | 4 = 4,
 ): CounterTeam[] {
   const read = classifyDefense(enemyIds);
   if (!read) return [];
@@ -1521,13 +1560,9 @@ export function recommendCounters(
   for (const recipe of recipesFor(read)) {
     const reviveThreat =
       read.roles.includes("revive") ||
-      read.uniqueEffects.some((u) =>
-        /covenant|fragment of life|time reversal|grudge|blood aura|spirit gate|soul exchange|dark contract|vip treatment|spirit lord|superhumanization|it's time to be reborn/i.test(
-          u.name,
-        ),
-      );
+      read.uniqueEffects.some((u) => isReviveUnique(u.name));
     if (recipe.id === "anti-revive-burst" && !reviveThreat) continue;
-    const filled = fillRecipe(recipe, usable, enemyIds);
+    const filled = fillRecipe(recipe, usable, enemyIds, seats);
     if (filled.heroIds.length < 3) continue;
     const filledHeroes = filled.picks.map((p) => p.hero);
     const wallOpeners = heroesOf(enemyIds).filter(isFirstCycleOpener);
@@ -1586,6 +1621,7 @@ export function recommendCounters(
       recipeId: recipe.id,
       name: recipe.name,
       heroIds: filled.heroIds,
+      seats,
       score,
       coverage: filled.coverage,
       wincon: recipe.wincon,

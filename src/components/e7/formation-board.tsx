@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { FORMATION_CELLS } from "@/lib/e7/formation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { FORMATION_CELLS, type FormationFacing, type ScoutMode } from "@/lib/e7/formation";
 import { CLASS_LABEL, ELEMENT_LABEL } from "@/lib/e7/heroes";
 import { getHero } from "@/lib/e7/catalog";
 import type { Hero } from "@/lib/e7/types";
@@ -14,6 +15,13 @@ const WASH: Record<Hero["element"], string> = {
 };
 
 const GAP = 10;
+
+function visualArea(area: string, facing: FormationFacing): string {
+  if (facing !== "enemy") return area;
+  if (area === "front") return "back";
+  if (area === "back") return "front";
+  return area;
+}
 
 function initials(hero: Hero) {
   const parts = hero.short.split(/[.\s]+/).filter(Boolean);
@@ -33,6 +41,12 @@ function vertexStyle(area: string, r: number): CSSProperties {
   if (area === "left") return { left: "50%", top: `calc(50% - ${r}px)`, transform: mid };
   if (area === "back") return { left: `calc(50% - ${r}px)`, top: "50%", transform: mid };
   if (area === "front") return { left: `calc(50% + ${r}px)`, top: "50%", transform: mid };
+  if (area === "rear-left")
+    return { left: `calc(50% - ${r}px)`, top: `calc(50% - ${r * 0.62}px)`, transform: mid };
+  if (area === "rear-right")
+    return { left: `calc(50% + ${r}px)`, top: `calc(50% - ${r * 0.62}px)`, transform: mid };
+  if (area === "front-gw")
+    return { left: "50%", top: `calc(50% + ${r * 0.72}px)`, transform: mid };
   return { left: "50%", top: `calc(50% + ${r}px)`, transform: mid };
 }
 
@@ -82,6 +96,12 @@ function outerVertex(area: string, sizePx: number): CSSProperties {
   if (area === "left") return { left: "50%", top: `calc(50% - ${d}px)`, transform: mid };
   if (area === "back") return { left: `calc(50% - ${d}px)`, top: "50%", transform: mid };
   if (area === "front") return { left: `calc(50% + ${d}px)`, top: "50%", transform: mid };
+  if (area === "rear-left")
+    return { left: `calc(50% - ${d}px)`, top: `calc(50% - ${d * 0.62}px)`, transform: mid };
+  if (area === "rear-right")
+    return { left: `calc(50% + ${d}px)`, top: `calc(50% - ${d * 0.62}px)`, transform: mid };
+  if (area === "front-gw")
+    return { left: "50%", top: `calc(50% + ${d * 0.72}px)`, transform: mid };
   return { left: "50%", top: `calc(50% + ${d}px)`, transform: mid };
 }
 
@@ -96,6 +116,27 @@ function nameStyle(area: string, sizePx: number): CSSProperties {
   if (area === "front") {
     return { left: `calc(50% + ${d}px)`, top: "50%", transform: "translate(0, -50%)" };
   }
+  if (area === "rear-left") {
+    return {
+      left: `calc(50% - ${d}px)`,
+      top: `calc(50% - ${d * 0.62}px)`,
+      transform: "translate(-100%, -50%)",
+    };
+  }
+  if (area === "rear-right") {
+    return {
+      left: `calc(50% + ${d}px)`,
+      top: `calc(50% - ${d * 0.62}px)`,
+      transform: "translate(0, -50%)",
+    };
+  }
+  if (area === "front-gw") {
+    return {
+      left: "50%",
+      top: `calc(50% + ${d * 0.72}px)`,
+      transform: "translate(-50%, 0)",
+    };
+  }
   return { left: "50%", top: `calc(50% + ${d}px)`, transform: "translate(-50%, 0)" };
 }
 
@@ -105,6 +146,8 @@ function Cell({
   compact,
   area,
   sizePx,
+  isFront,
+  facing,
   onClick,
   onClear,
 }: {
@@ -113,10 +156,13 @@ function Cell({
   compact?: boolean;
   area: string;
   sizePx: number;
+  isFront?: boolean;
+  facing?: FormationFacing;
   onClick?: () => void;
   onClear?: () => void;
 }) {
   const face = <DiamondFace hero={hero} sizePx={sizePx} />;
+  const enemy = facing === "enemy";
   return (
     <div className="relative" style={{ width: sizePx, height: sizePx }}>
       {compact ? (
@@ -130,6 +176,23 @@ function Cell({
           {face}
         </button>
       )}
+      {isFront ? (
+        <span
+          aria-label="Front"
+          className={cn(
+            "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 text-primary",
+            enemy
+              ? "left-0 -translate-x-1/2"
+              : "right-0 translate-x-1/2",
+          )}
+        >
+          {enemy ? (
+            <ChevronLeft className={compact ? "size-3.5" : "size-4"} strokeWidth={2.5} />
+          ) : (
+            <ChevronRight className={compact ? "size-3.5" : "size-4"} strokeWidth={2.5} />
+          )}
+        </span>
+      ) : null}
       <span
         className={cn(
           "pointer-events-none absolute z-10 max-w-[4.5rem] truncate text-center leading-none whitespace-nowrap text-muted-foreground",
@@ -160,30 +223,38 @@ function Cell({
 export function FormationBoard({
   ids,
   compact,
+  mode = "arena",
+  facing = "enemy",
   onSlot,
   onClear,
 }: {
   ids: string[];
   compact?: boolean;
+  mode?: ScoutMode;
+  facing?: FormationFacing;
   onSlot?: (index: number) => void;
   onClear?: (index: number) => void;
 }) {
   const { S, r, extent } = metrics(compact);
-  const side = compact ? 48 : 72;
+  const side = compact ? 56 : 96;
   const box = extent * 2 + side;
+  void mode;
   return (
     <div className="relative mx-auto" style={{ width: box, height: box }}>
       {FORMATION_CELLS.map((cell) => {
         const id = ids[cell.index] ?? "";
         const hero = id ? getHero(id) : undefined;
+        const vis = visualArea(cell.area, facing);
         return (
-          <div key={cell.area} className="absolute z-10" style={vertexStyle(cell.area, r)}>
+          <div key={cell.area} className="absolute z-10" style={vertexStyle(vis, r)}>
             <Cell
               hero={hero}
               label={cell.label}
-              area={cell.area}
+              area={vis}
               compact={compact}
               sizePx={S}
+              isFront={cell.area === "front"}
+              facing={facing}
               onClick={onSlot ? () => onSlot(cell.index) : undefined}
               onClear={hero && onClear ? () => onClear(cell.index) : undefined}
             />

@@ -1,34 +1,34 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Crosshair, LogOut, Settings2, TrendingUp, Users } from "lucide-react";
+import { Crosshair, LogOut, Settings2, Users } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { isOwnerIdentity } from "@/lib/e7/owner";
-import { divisionForVp } from "@/lib/e7/ranks";
 import { useArenaStore } from "@/lib/e7/store";
 import { cn } from "@/lib/utils";
 import { Brand } from "./brand";
+import { Starfield } from "./starfield";
 
 const NAV = [
   { to: "/", label: "Scout", icon: Crosshair },
   { to: "/roster", label: "Roster", icon: Users },
-  { to: "/log", label: "Results", icon: TrendingUp },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const vp = useArenaStore((s) => s.vp);
   const user = useCurrentUser();
   const role = useArenaStore((s) => s.role);
   const email = useArenaStore((s) => s.email);
   const isAdmin =
     role === "admin" || isOwnerIdentity(user?.primaryEmail, user?.displayName, email);
-  const rank = divisionForVp(vp);
-  const items = isAdmin ? [...NAV, { to: "/admin", label: "Admin", icon: Settings2 }] : NAV;
+  const items = isAdmin
+    ? [...NAV, { to: "/admin", label: "Admin", icon: Settings2 }]
+    : NAV;
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/85 backdrop-blur-md">
+    <div className="relative flex h-full max-h-full flex-col overflow-hidden bg-background text-foreground">
+      <Starfield />
+      <header className="relative z-40 shrink-0 border-b border-border/80 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4">
           <Link to="/" className="min-w-0">
             <Brand size="sm" />
@@ -54,26 +54,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
           <div className="flex min-w-0 items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                {rank.label}
-              </p>
-              <p className="font-mono text-sm tabular-nums">{vp.toLocaleString()} VP</p>
-            </div>
             <AccountChip />
           </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 pt-6 pb-[calc(5.75rem+env(safe-area-inset-bottom))] md:pt-8 md:pb-16">
-        {children}
+      <main className="app-scroll relative z-10 min-h-0 flex-1 px-4 pt-6 pb-6 md:pt-8 md:pb-16">
+        <div className="mx-auto w-full max-w-5xl">{children}</div>
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/90 backdrop-blur-md md:hidden"
+        className="relative z-40 shrink-0 border-t border-border/80 bg-background/90 backdrop-blur-md md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className={cn("grid h-14", items.length === 4 ? "grid-cols-4" : "grid-cols-3")}>
+        <div className={cn("grid h-14", items.length === 3 ? "grid-cols-3" : "grid-cols-2")}>
           {items.map((item) => {
             const active = pathname === item.to || (item.to !== "/" && pathname.startsWith(item.to));
             return (

@@ -1,36 +1,37 @@
 import { useRef, useState } from "react";
-import { ChevronDown, Pencil } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { FormationBoard } from "@/components/e7/formation-board";
 import { InfoTip } from "@/components/e7/info-tip";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { placeLineup } from "@/lib/e7/formation";
-import { winRate } from "@/lib/e7/stats";
 import type { CounterTeam } from "@/lib/e7/types";
 import { cn } from "@/lib/utils";
+
+function nearestScroller(from: HTMLElement): HTMLElement | Window {
+  let node: HTMLElement | null = from.parentElement;
+  while (node && node !== document.documentElement) {
+    const { overflowY } = getComputedStyle(node);
+    if (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") return node;
+    node = node.parentElement;
+  }
+  return window;
+}
 
 export function CounterCard({
   team,
   selected,
   onSelect,
-  record,
-  result,
 }: {
   team: CounterTeam;
   selected: boolean;
   onSelect: () => void;
-  record?: { n: number; wins: number };
-  result?: {
-    onRecord: (won: boolean, note: string) => void;
-  };
 }) {
-  const slots = Math.round(team.coverage * 4);
-  const rate = record ? winRate(record.wins, record.n) : null;
-  const [noteOpen, setNoteOpen] = useState(false);
-  const [note, setNote] = useState("");
+  const seats = team.seats ?? 4;
+  const slots = Math.round(team.coverage * seats);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [whyOpen, setWhyOpen] = useState(false);
+  const setupLines = team.setup.split(/(?<=\.)\s+/).filter((s) => s.length > 8);
 
   function toggle() {
     const top = rootRef.current?.getBoundingClientRect().top ?? 0;
@@ -39,18 +40,15 @@ export function CounterCard({
       const el = rootRef.current;
       if (!el) return;
       const dy = el.getBoundingClientRect().top - top;
-      if (Math.abs(dy) > 0.5) window.scrollBy(0, dy);
+      if (Math.abs(dy) <= 0.5) return;
+      const scroller = nearestScroller(el);
+      if (scroller instanceof Window) scroller.scrollBy(0, dy);
+      else scroller.scrollTop += dy;
     };
     requestAnimationFrame(() => {
       pin();
       requestAnimationFrame(pin);
     });
-  }
-
-  function save(won: boolean) {
-    result?.onRecord(won, note.trim());
-    setNote("");
-    setNoteOpen(false);
   }
 
   return (
@@ -87,7 +85,7 @@ export function CounterCard({
             </div>
             <div className="flex shrink-0 items-center gap-3">
               <div className="text-right">
-                <p className="font-mono text-lg tabular-nums leading-none">{slots}/4</p>
+                <p className="font-mono text-lg tabular-nums leading-none">{slots}/{seats}</p>
                 <p className="mt-1 text-xs tracking-wider text-muted-foreground uppercase">Filled</p>
               </div>
               <ChevronDown
@@ -100,7 +98,7 @@ export function CounterCard({
               />
             </div>
           </div>
-          <FormationBoard ids={placeLineup(team.heroIds)} compact />
+          <FormationBoard ids={placeLineup(team.heroIds)} facing="ally" compact />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 px-4 sm:px-5">
@@ -122,75 +120,12 @@ export function CounterCard({
             </InfoTip>
           </span>
         ))}
-        {record && record.n > 0 ? (
-          <Badge variant={rate !== null && rate >= 50 ? "win" : "outline"}>
-            {record.wins}W {record.n - record.wins}L
-          </Badge>
-        ) : null}
       </div>
-      {result ? (
-        <div
-          className="flex flex-col gap-2 px-4 pt-3 pb-4 sm:px-5"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => save(true)}
-              className="h-9 flex-1 rounded-md bg-win text-sm font-medium text-background [-webkit-tap-highlight-color:transparent] active:scale-[0.96]"
-            >
-              Won
-            </button>
-            <button
-              type="button"
-              onClick={() => save(false)}
-              className="h-9 flex-1 rounded-md bg-loss text-sm font-medium text-background [-webkit-tap-highlight-color:transparent] active:scale-[0.96]"
-            >
-              Lost
-            </button>
-            <Button
-              type="button"
-              variant={noteOpen ? "secondary" : "ghost"}
-              size="icon-sm"
-              aria-label={noteOpen ? "Hide note" : "Add a note"}
-              aria-pressed={noteOpen}
-              onClick={() => setNoteOpen((v) => !v)}
-            >
-              <Pencil strokeWidth={1.75} />
-            </Button>
-          </div>
-          {noteOpen ? (
-            <Input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Note (optional)"
-              aria-label="Match note"
-            />
-          ) : null}
-        </div>
-      ) : (
-        <div className="h-4" />
-      )}
+      <div className="h-4" />
       <div className="counter-fold" data-open={selected ? "true" : "false"}>
         <div>
           <CardContent className="flex flex-col gap-4 border-t border-border px-4 pt-4 pb-5 sm:px-5">
             <Block label="Wincon" text={team.wincon} />
-            {team.why.length > 0 ? (
-              <div>
-                <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                  Why this team
-                </p>
-                <ul className="mt-1 flex flex-col gap-1">
-                  {team.why.map((line) => (
-                    <li key={line} className="text-sm leading-relaxed text-muted-foreground">
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            <Block label="Setup" text={team.setup} />
             {team.pitfalls.length > 0 ? (
               <div>
                 <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
@@ -203,6 +138,50 @@ export function CounterCard({
                     </li>
                   ))}
                 </ul>
+              </div>
+            ) : null}
+            {setupLines.length > 1 ? (
+              <div>
+                <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                  Setup
+                </p>
+                <ul className="mt-1 flex flex-col gap-1.5">
+                  {setupLines.map((line) => (
+                    <li key={line} className="text-sm leading-relaxed">
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <Block label="Setup" text={team.setup} />
+            )}
+            {team.why.length > 0 ? (
+              <div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setWhyOpen((v) => !v);
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  aria-expanded={whyOpen}
+                  className="flex min-h-11 w-full items-center justify-between gap-3 text-left"
+                >
+                  <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                    Why this team
+                  </span>
+                  <span className="text-sm text-muted-foreground">{whyOpen ? "Hide" : "Show"}</span>
+                </button>
+                {whyOpen ? (
+                  <ul className="flex flex-col gap-1 pb-1">
+                    {team.why.map((line) => (
+                      <li key={line} className="text-sm leading-relaxed text-muted-foreground">
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             ) : null}
           </CardContent>

@@ -112,7 +112,9 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     heroes.some((h) => (h.uniqueEffects ?? []).some((u) => /^skill nullifier$/i.test(u.name))) ||
     ids.has("fallen-cecilia") ||
     ids.has("angel-of-light-angelica") ||
-    ids.has("eternal-wanderer-ludwig")
+    ids.has("eternal-wanderer-ludwig") ||
+    ids.has("lilibet") ||
+    ids.has("aube")
   ) {
     add({
       key: "nullifier",
@@ -174,8 +176,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     });
   }
   if (
-    (hasUnique(heroes, "cascade") ||
-      hasUnique(heroes, "lullaby for waves") ||
+    (hasUnique(heroes, "lullaby for waves") ||
       ids.has("dragon-king-sharun")) &&
     !ids.has("notos") &&
     !hasUnique(heroes, "sanctuary of battle")
@@ -210,7 +211,6 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     });
   }
   if (
-    hasUnique(heroes, "barrier inversion") ||
     hasUnique(heroes, "desert storm") ||
     ids.has("desert-jewel-basar")
   ) {
@@ -265,8 +265,15 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "block",
       label: "Block",
-      note: "After buffs are removed, Block: you cannot receive buffs, and allies cannot cleanse you. Passives still run. The random Stun, Sleep, or redirected Provoke is not guaranteed.",
+      note: "Block: you cannot receive buffs, and allies cannot cleanse you. Passives still run. That is not Seal.",
     });
+  }
+  if (
+    (hasUnique(heroes, "mirror of the abyss") ||
+      ids.has("witch-of-the-mere-tenebria")) &&
+    !ids.has("notos") &&
+    !hasUnique(heroes, "sanctuary of battle")
+  ) {
     add({
       key: "wmeri",
       label: "WMeri Dual Attack",
@@ -274,14 +281,25 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     });
   }
   if (
-    (hasDebuff("Restrict") || hasUnique(heroes, "restrict")) &&
+    (hasDebuff("Restrict")) &&
     !ids.has("notos") &&
     !hasUnique(heroes, "sanctuary of battle")
   ) {
     add({
       key: "restrict",
       label: "Restrict",
-      note: "Pushes to the turn bar other than Speed do not apply.",
+      note: "Combat Readiness increases other than Speed do not apply.",
+    });
+  }
+  if (
+    (hasDebuff("Immobilize") || hasUnique(heroes, "immobilize") || ids.has("aube")) &&
+    !ids.has("notos") &&
+    !hasUnique(heroes, "sanctuary of battle")
+  ) {
+    add({
+      key: "immobilize",
+      label: "Immobilize",
+      note: "Combat Readiness from Speed does not apply. Restrict also blocks Combat Readiness from skills. Speed stacking does not help.",
     });
   }
   if (
@@ -311,8 +329,8 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     });
     add({
       key: "cr-steal",
-      label: "Turn bar steal",
-      note: "When you push a turn bar, she takes 35% of it.",
+      label: "Combat Readiness steal",
+      note: "When you raise Combat Readiness, she takes 35% of it.",
     });
   }
   if (hasUnique(heroes, "spirit gate") || ids.has("spirit-eye-celine")) {
@@ -434,7 +452,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "notos",
       label: "Notos",
-      note: "God's Might doubles his stats. Buffs and debuffs do not apply to anyone. That skill starts the first fight on cooldown. Cutting max Health still works. The turn bar does not move him until he transforms.",
+      note: "God's Might doubles his stats. Buffs and debuffs do not apply to anyone. That skill starts the first fight on cooldown. Cutting max Health still works. Combat Readiness does not move him until he transforms.",
       answerTags: ["injury"],
     });
   }
@@ -450,7 +468,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "d-lilibet",
       label: "D.Lilibet",
-      note: "Your debuffs feed her turn bar and Immunity.",
+      note: "Your debuffs feed her Combat Readiness and Immunity.",
     });
   }
   if (hasUnique(heroes, "queen's dignity") || ids.has("little-queen-charlotte")) {
@@ -515,7 +533,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "sb-ara",
       label: "SB Ara",
-      note: "Stuns everyone, applies two Burns, then pulls the fullest turn bar back 30%. The extra hit is hers alone — an ally does not hit with her.",
+      note: "Stuns everyone, applies two Burns, then pulls the enemy with the highest Combat Readiness back 30%. The extra hit is hers alone — an ally does not hit with her.",
     });
   }
   if (ids.has("zahhak") || heroes.some((h) => h.id === "zahhak" && h.tags.includes("injury"))) {
@@ -563,7 +581,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "c-pavel",
       label: "C.Pavel",
-      note: "Ally crits charge Begone: he hits everyone, then his turn bar fills. Extra attacks, counters, and ally-hits-with-them do not charge it. His third skill ignores damage sharing.",
+      note: "Ally crits charge Begone: he hits everyone, then his Combat Readiness fills. Extra attacks, counters, and ally-hits-with-them do not charge it. His third skill ignores damage sharing.",
     });
   }
   if (hasDebuff("Sleep") && !ids.has("notos") && !hasUnique(heroes, "sanctuary of battle")) {
@@ -573,11 +591,18 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       note: "They can Sleep a unit. That unit cannot act, and its Evasion drops to zero until it takes a hit.",
     });
   }
-  if (hasDebuff("Target")) {
+  if (hasDebuff("Target") && ids.has("architect-laika")) {
     add({
       key: "target",
       label: "Target",
       note: "+15% damage taken, −50% Evasion. If this lands, Architect Laika acts again immediately.",
+      answerTags: ["aoe", "injury"],
+    });
+  } else if (hasDebuff("Target")) {
+    add({
+      key: "target",
+      label: "Target",
+      note: "+15% damage taken, −50% Evasion.",
       answerTags: ["aoe", "injury"],
     });
   }
@@ -639,7 +664,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "a-yufine",
       label: "A.Yufine",
-      note: "Removes buffs from everyone and pulls turn bars back halfway. That cannot be resisted. When you push a turn bar, 30% of that push is lost. 30% chance to counter when hit. Trauma is on herself.",
+      note: "Removes buffs from everyone and pulls Combat Readiness back halfway. That cannot be resisted. When you raise Combat Readiness, 30% of that increase is lost. 30% chance to counter when hit. Trauma is on herself.",
     });
   }
   if (hasUnique(heroes, "bind") || ids.has("rhianna-and-luciella")) {
@@ -654,21 +679,21 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "h-lua",
       label: "H.Lua",
-      note: "When a hero hits her, their team gains 7% turn bar and every ally with Challenge counters. Mort and Star's Blessing turn those counters off. Lua's Challenge shortens buffs — it does not remove them.",
+      note: "When a hero hits her, their team gains 7% Combat Readiness and every ally with Challenge counters. Mort and Star's Blessing turn those counters off. Lua's Challenge shortens buffs — it does not remove them.",
     });
   }
   if (hasUnique(heroes, "obliterate") || ids.has("operator-sigret")) {
     add({
       key: "o-sigret",
       label: "O.Sigret",
-      note: "Everyone's turn bar is pulled back 30%, and buffs are shortened by one turn — not removed. She acts again only if Annihilation kills. Unavoidable if the target has Barrier.",
+      note: "Everyone's Combat Readiness is pulled back 30%, and buffs are shortened by one turn — not removed. She acts again only if Annihilation kills. Unavoidable if the target has Barrier.",
     });
   }
   if (ids.has("pirate-captain-flan")) {
     add({
       key: "pc-flan",
       label: "PC Flan",
-      note: "After an ally hits a unit with no buffs, their team gains Speed and turn bar. Full Burst steals a buff, then a Bomb that stuns two turns later and cannot be resisted. That stun is not the opener.",
+      note: "After an ally hits a unit with no buffs, their team gains Speed and Combat Readiness. Full Burst steals a buff, then a Bomb that stuns two turns later and cannot be resisted. That stun is not the opener.",
     });
   }
   if (hasUnique(heroes, "death sentence") || ids.has("ainz-ooal-gown")) {
@@ -682,23 +707,21 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "grudge",
       label: "Grudge / Blood Aura",
-      note: "First death: team Immunity. A kill with his third skill revives everyone.",
-      answerTags: ["anti-revive"],
-      answerEffects: ["extinction"],
+      note: "First death: team Barrier and Immunity, and he gains Blood Aura. Moon Slash only revives dead allies if that third skill gets a kill. That is a clutch, not a Ruele reset.",
     });
   }
   if (hasUnique(heroes, "can you handle this") || ids.has("eternal-wanderer-ludwig")) {
     add({
       key: "ew-ludwig",
       label: "EW Ludwig",
-      note: "If you spend souls, his turn bar fills and his third skill hits through more Defense. Arena defense rarely spends souls, so that extra turn usually does not happen. The first skill into him is cancelled.",
+      note: "If you spend souls, his Combat Readiness fills and his third skill hits through more Defense. Arena defense rarely spends souls, so that extra turn usually does not happen. The first skill into him is cancelled.",
     });
   }
   if (hasUnique(heroes, "boundless obsession") || ids.has("requiem-roana")) {
     add({
       key: "rq-roana",
       label: "RQ Roana",
-      note: "Turn bar from Speed is halved — Speed itself is not capped. When the unit in Front (rightmost) takes a turn, her bar jumps 70%. Then she removes buffs from everyone, adds one cooldown, and pulls turn bars back 30%.",
+      note: "Combat Readiness from Speed is halved — Speed itself is not capped. When the unit in Front (rightmost) takes a turn, her Combat Readiness jumps 70%. Then she removes buffs from everyone, adds one cooldown, and pulls Combat Readiness back 30%.",
     });
   }
   if (hasUnique(heroes, "illusion") || ids.has("specter-tenebria")) {
@@ -720,14 +743,14 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "tm-lulu",
       label: "TM Lulu",
-      note: "Victory Pose fills the team's turn bars, then she acts again. A kill with Demolish cannot be revived. Energy Blast ignores damage sharing. The extra hit is hers alone.",
+      note: "Victory Pose fills the team's Combat Readiness, then she acts again. A kill with Demolish cannot be revived. Energy Blast ignores damage sharing. The extra hit is hers alone.",
     });
   }
   if (hasUnique(heroes, "deify") || ids.has("zio")) {
     add({
       key: "zio",
       label: "Zio",
-      note: "Removes two buffs, then Silence and pulls the turn bar back 30%. On her basic skill she hits again (no ally with her) and takes 50% less damage. Speed is not capped.",
+      note: "Removes two buffs, then Silence and pulls Combat Readiness back 30%. On her basic skill she hits again (no ally with her) and takes 50% less damage. Speed is not capped.",
     });
   }
   if (hasUnique(heroes, "nature restoration") || ids.has("mediator-kawerik")) {
@@ -794,7 +817,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       note: "On her turn she extra-attacks everyone, then Stealth. Death's Dominion already turns revive off for both sides. The third skill starts the first fight on cooldown.",
     });
   }
-  if (hasUnique(heroes, "burst") || ids.has("archdemons-shadow")) {
+  if (ids.has("archdemons-shadow")) {
     add({
       key: "ads",
       label: "ADS Burst",
@@ -808,7 +831,127 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       note: "Star Extinction hits everyone, he is Invincible for one turn, and it does not trigger counters. Destructive Gaze removes buffs from everyone. He is there to end the fight, not stall.",
     });
   }
-  if (roles.has("opener") && roles.has("cleave")) {
+  if (hasUnique(heroes, "detain") || ids.has("eye-of-the-abyss-fumyr")) {
+    add({
+      key: "fumyr-detain",
+      label: "Detain",
+      note: "The foremost ally is taken off the field until she dies or Detain ends. That seat is empty until they return.",
+    });
+  }
+  if (hasUnique(heroes, "concealment") || ids.has("aube")) {
+    add({
+      key: "aube-hide",
+      label: "Concealment",
+      note: "While another ally is present she cannot be selected as a skill target. Area skills still hit her. That is not Specter Tenebria Illusion.",
+      answerTags: ["aoe"],
+    });
+  }
+  if (ids.has("argent-waves-hwayoung") || hasUnique(heroes, "swallow kick")) {
+    add({
+      key: "aw-hwayoung",
+      label: "AW Hwayoung",
+      note: "After an ally non-attack skill she Swallow Kicks the highest Defense, 50% penetrate. With Vigor she extra-turns. That extra turn is not the first cycle.",
+    });
+  }
+  if (ids.has("aria") || hasUnique(heroes, "the umbral hour")) {
+    add({
+      key: "aria-stealth",
+      label: "Aria Stealth",
+      note: "Allies except her are Stealthed with Barrier. Single-target skills have to hit Aria. Area skills still hit. Combat Readiness −30% is not a Speed cap.",
+      answerTags: ["aoe"],
+    });
+  }
+  if (ids.has("arunka") || hasUnique(heroes, "wild instinct")) {
+    add({
+      key: "arunka",
+      label: "Arunka",
+      note: "She cannot crit. Expose is an extra attack, not Dual Attack. A kill with Thrashing cannot be revived.",
+      answerTags: ["anti-revive"],
+    });
+  }
+  if (ids.has("aubade-ludwig") || hasUnique(heroes, "light of condemnation")) {
+    add({
+      key: "aubade",
+      label: "Aubade Ludwig",
+      note: "White Night strips two, then Block and Silence. With Dawn he spends all Souls on Light of Condemnation extra area damage. Extra attack is not Dual Attack.",
+    });
+  }
+  if (hasUnique(heroes, "coastal discipline") || ids.has("aram")) {
+    add({
+      key: "aram",
+      label: "Aram",
+      note: "If you take the first turn, her team starts with Immunity for three turns. After an area attack, Warming Up: 10 Soul, Vigor, and Speed Up. That is not a Speed cap.",
+      answerRoles: ["strip"],
+    });
+  }
+  if (hasUnique(heroes, "ignore sharing") || ids.has("ivana")) {
+    add({
+      key: "ivana",
+      label: "Ivana",
+      note: "Requiem Prayer: their attacks ignore damage sharing for three turns. Offering and other share tanks do not cover you.",
+    });
+  }
+  if (ids.has("amid") || hasUnique(heroes, "forest blessing")) {
+    add({
+      key: "amid",
+      label: "Amid Nullifier",
+      note: "Forest Blessing puts Skill Nullifier on her whole team. The first skill into each of them is cancelled, then she acts again.",
+    });
+  }
+  if (ids.has("abigail") || hasUnique(heroes, "blood banquet")) {
+    add({
+      key: "abigail",
+      label: "Abigail save",
+      note: "Blood Banquet spends her Health to grant Immortality to the back row when they would die. Curse on the highest Attack also reflects part of your damage onto that unit.",
+    });
+  }
+  if (ids.has("ae-ningning") || hasUnique(heroes, "system hacking")) {
+    add({
+      key: "ae-ningning",
+      label: "ae-NINGNING",
+      note: "System Hacking turns Barrier into damage. That inversion ignores Effect Resistance and still hits on a miss. She is not Desert Jewel Basar.",
+    });
+  }
+  if (ids.has("ae-winter") || hasUnique(heroes, "next level")) {
+    add({
+      key: "ae-winter",
+      label: "ae-WINTER",
+      note: "A non-attack skill into her cleanses her, grants Immunity, and resets Black Out. Do not strip or push Combat Readiness as the first action. Stealth is on herself, not a miss nest.",
+    });
+  }
+  if (ids.has("albedo") || hasUnique(heroes, "aegis unfold")) {
+    add({
+      key: "albedo",
+      label: "Albedo",
+      note: "When an ally other than her is crit, she counters everyone with Bicorn: one buff comes off, then she gains Speed. Mort turns that counter off.",
+    });
+  }
+  if (hasUnique(heroes, "immortal will") || ids.has("kayron")) {
+    add({
+      key: "kayron-immortal",
+      label: "Kayron Immortality",
+      note: "On lethal damage he gains Immortality and Evasion, and his third skill resets. The first kill does not stick.",
+      answerTags: ["strip"],
+    });
+  }
+  if (
+    hasUnique(heroes, "last words of a fallen star") ||
+    hasUnique(heroes, "knowledge of the stars") ||
+    ids.has("uncharted-pioneer-politis")
+  ) {
+    add({
+      key: "up-politis",
+      label: "UP Politis",
+      note: "Front: after ten ally attacks. Back: after ten hits taken. Then she cleanses herself, additional damage on her team doubles, and she acts again. That extra turn is not the first cycle. S1/S3 additional damage still lands on a miss.",
+      answerTags: ["aoe"],
+    });
+  }
+  const otherCleave = heroes.some(
+    (h) =>
+      h.roles.includes("cleave") &&
+      !h.roles.includes("opener"),
+  );
+  if (roles.has("opener") && otherCleave) {
     add({
       key: "cleave",
       label: "Turn-1 cleave",
@@ -826,12 +969,17 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
       ? ` ${top.short}'s speed before gear is ${top.baseSpeed}. Last Rider Krau is 100.`
       : "";
     const cannotMiss = firstCycle.some(hitsEvenOnMiss);
+    const stripOpen = firstCycle.some(
+      (h) => h.tags.includes("strip") || h.roles.includes("strip"),
+    );
     add({
       key: "first-cycle",
       label: "First cycle",
       note: cannotMiss
         ? `${who} acts again immediately, then the third skill hits the whole team even on miss.${speedBit} If another damage dealer takes the next turn, slow units do not act.`
-        : `${who} acts again immediately on a skill (not by spending souls).${speedBit} Buffs come off, then the follow-up, before slow units act.`,
+        : stripOpen
+          ? `${who} acts again immediately on a skill (not by spending souls).${speedBit} Buffs come off, then the follow-up, before slow units act.`
+          : `${who} acts again immediately on a skill (not by spending souls).${speedBit} That extra turn is his kit, not a speed race.`,
       answerTags: cannotMiss ? undefined : ["evade"],
       answerRoles: ["opener"],
     });
@@ -861,8 +1009,17 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     "pc-flan": 14,
     ainz: 9,
     "force-target": 6,
+    "fumyr-detain": 6,
     offering: 7,
+    ivana: 7,
     nullifier: 8,
+    amid: 8,
+    "aube-hide": 8,
+    immobilize: 8,
+    "aw-hwayoung": 10,
+    "aria-stealth": 8,
+    arunka: 12,
+    aubade: 9,
     collapse: 8,
     salome: 8,
     "nm-luna": 8,
@@ -870,9 +1027,11 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     "hecate-extra": 10,
     ads: 12,
     straze: 12,
+    "up-politis": 12,
     "a-yufine": 11,
     block: 8,
     "cannot-die": 9,
+    "kayron-immortal": 9,
     "both-revive": 10,
     oath: 10,
     "ss-vivian": 10,
@@ -880,6 +1039,11 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     "c-armin": 11,
     "b-hwayoung": 9,
     strip: 11,
+    aram: 11,
+    abigail: 9,
+    "ae-ningning": 11,
+    "ae-winter": 10,
+    albedo: 13,
     cascade: 11,
     reversal: 12,
     "no-counter": 13,

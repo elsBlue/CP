@@ -1,21 +1,15 @@
 import { useMemo, useState } from "react";
 import { HeroPortrait } from "@/components/hero-portrait";
+import { JumpRail, groupByLetter } from "@/components/e7/jump-rail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { searchHeroes } from "@/lib/e7/engine";
 import { CLASS_LABEL, ELEMENT_LABEL } from "@/lib/e7/heroes";
 import { useCatalog } from "@/lib/e7/catalog";
 import { builtIds, useArenaStore } from "@/lib/e7/store";
-import { cn } from "@/lib/utils";
+import { cn, daysAgoLabel } from "@/lib/utils";
 
 type KitFilter = "all" | "verified" | "pending";
-
-function kitDate(iso?: string): string | null {
-  if (!iso) return null;
-  const d = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
 
 export function RosterView() {
   const roster = useArenaStore((s) => s.roster);
@@ -36,8 +30,13 @@ export function RosterView() {
     if (onlyBuilt) pool = pool.filter((h) => roster[h.id]?.built);
     if (kit === "verified") pool = pool.filter((h) => h.verified);
     if (kit === "pending") pool = pool.filter((h) => !h.verified);
-    return pool;
+    return [...pool].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   }, [query, onlyBuilt, kit, roster, heroes]);
+  const groups = useMemo(() => groupByLetter(list, (h) => h.name), [list]);
+  const jumpItems = useMemo(
+    () => groups.map((g) => ({ id: `az-${g.letter}`, label: g.letter })),
+    [groups],
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -54,11 +53,23 @@ export function RosterView() {
         </p>
       </header>
 
-      <div className="grid grid-cols-4 gap-1.5">
-        <StatChip label="Built" value={String(built.length)} />
-        <StatChip label="Ready" value={String(builtVerified)} />
-        <StatChip label="Verified" value={String(verifiedN)} />
-        <StatChip label="Pending" value={String(heroes.length - verifiedN)} />
+      <div className="grid grid-cols-4 border-y border-border/80 py-3">
+        {(
+          [
+            ["Built", String(built.length)],
+            ["Ready", String(builtVerified)],
+            ["Verified", String(verifiedN)],
+            ["Pending", String(heroes.length - verifiedN)],
+          ] as const
+        ).map(([label, value], i) => (
+          <div
+            key={label}
+            className={cn("px-3 first:pl-0 last:pr-0", i > 0 && "border-l border-border/80")}
+          >
+            <p className="text-[10px] tracking-[0.16em] text-muted-foreground uppercase">{label}</p>
+            <p className="mt-0.5 font-mono text-xl tabular-nums leading-none">{value}</p>
+          </div>
+        ))}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -127,51 +138,55 @@ export function RosterView() {
       </div>
 
       <ul className="flex flex-col gap-1">
-        {list.map((hero) => {
-          const builtOn = Boolean(roster[hero.id]?.built);
-          const checked = kitDate(hero.checkedAt);
-          return (
-            <li key={hero.id}>
-              <button
-                type="button"
-                onClick={() => toggleBuilt(hero.id)}
-                aria-pressed={builtOn}
-                className="grid min-h-14 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl bg-card px-3 py-2.5 text-left shadow-[var(--shadow-border)]"
-              >
-                <HeroPortrait hero={hero} size="sm" dimmed={!builtOn} />
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium">{hero.name}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]}
-                    {hero.verified
-                      ? ` · in-game verified${checked ? ` ${checked}` : ""}`
-                      : " · kit pending"}
-                  </span>
-                </span>
-                <span
-                  className={cn(
-                    "inline-flex h-11 min-w-24 items-center justify-center rounded-full px-3 text-xs font-medium tracking-wide uppercase",
-                    builtOn
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground",
-                  )}
-                >
-                  {builtOn ? "Built" : "Not built"}
-                </span>
-              </button>
-            </li>
-          );
-        })}
+        {groups.map((group) => (
+          <li key={group.letter} className="flex flex-col gap-1">
+            <p
+              id={`az-${group.letter}`}
+              className="scroll-mt-3 px-1 pt-3 pb-1 text-xs font-medium tracking-[0.18em] text-muted-foreground"
+            >
+              {group.letter}
+            </p>
+            <ul className="flex flex-col gap-1">
+              {group.rows.map((hero) => {
+                const builtOn = Boolean(roster[hero.id]?.built);
+                const checked = daysAgoLabel(hero.checkedAt);
+                return (
+                  <li key={hero.id}>
+                    <button
+                      type="button"
+                      onClick={() => toggleBuilt(hero.id)}
+                      aria-pressed={builtOn}
+                      className="grid min-h-14 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl bg-card px-3 py-2.5 text-left shadow-[var(--shadow-border)]"
+                    >
+                      <HeroPortrait hero={hero} size="sm" dimmed={!builtOn} />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">{hero.name}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]}
+                          {hero.verified
+                            ? ` · in-game verified${checked ? ` ${checked}` : ""}`
+                            : " · kit pending"}
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          "inline-flex h-11 min-w-24 items-center justify-center rounded-full px-3 text-xs font-medium tracking-wide uppercase",
+                          builtOn
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-muted-foreground",
+                        )}
+                      >
+                        {builtOn ? "Built" : "Not built"}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+        ))}
       </ul>
-    </div>
-  );
-}
-
-function StatChip({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-card px-2 py-1.5 shadow-[var(--shadow-border)]">
-      <p className="text-[10px] tracking-wide text-muted-foreground uppercase">{label}</p>
-      <p className="font-mono text-base tabular-nums leading-tight">{value}</p>
+      {jumpItems.length > 1 ? <JumpRail items={jumpItems} /> : null}
     </div>
   );
 }

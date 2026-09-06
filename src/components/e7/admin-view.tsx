@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
 import { HeroPortrait } from "@/components/hero-portrait";
+import { JumpRail, groupByLetter } from "@/components/e7/jump-rail";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -21,12 +23,16 @@ import {
   getAnalytics,
   listAdminLog,
   listMembers,
+  listStrategyIdeas,
   saveHero,
   saveHeroIcon,
   savePreset,
   saveRecipe,
+  saveStrategyIdea,
   setIngameName,
   setMemberRole,
+  setStrategyIdeaStatus,
+  deleteStrategyIdea,
 } from "@/lib/e7/api";
 import { useCatalog } from "@/lib/e7/catalog";
 import { CLASS_LABEL, ELEMENT_LABEL, heroRarity } from "@/lib/e7/heroes";
@@ -50,21 +56,13 @@ import {
   type Recipe,
   type RecipeStat,
   type SlotNeed,
+  type StrategyIdea,
+  type StrategyIdeaStatus,
   type WallStat,
 } from "@/lib/e7/types";
-import { cn } from "@/lib/utils";
+import { cn, daysAgoLabel } from "@/lib/utils";
 
-type Tab = "units" | "strategies" | "walls" | "members" | "log" | "stats";
-
-function formatInGameDate(iso?: string): string {
-  if (!iso) return "—";
-  const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return iso;
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const month = months[m - 1];
-  if (!month) return iso;
-  return `${d} ${month} ${y}`;
-}
+type Tab = "units" | "strategies" | "ideas" | "walls" | "members" | "log" | "stats";
 
 function slugify(value: string) {
   return value
@@ -96,6 +94,7 @@ export function AdminView() {
           [
             ["units", "Units"],
             ["strategies", "Strategies"],
+            ["ideas", "Ideas"],
             ["walls", "Walls"],
             ["members", "Members"],
             ["log", "Log"],
@@ -117,6 +116,7 @@ export function AdminView() {
       </div>
       {tab === "units" ? <HeroAdmin /> : null}
       {tab === "strategies" ? <RecipeAdmin /> : null}
+      {tab === "ideas" ? <IdeaAdmin /> : null}
       {tab === "walls" ? <PresetAdmin /> : null}
       {tab === "members" ? <MemberAdmin /> : null}
       {tab === "log" ? <ActivityLog /> : null}
@@ -142,10 +142,13 @@ function HeroAdmin() {
       ? heroes.filter((h) => `${h.name} ${h.short} ${h.id}`.toLowerCase().includes(q))
       : heroes;
     if (star) rows = rows.filter((h) => heroRarity(h) === star);
-    return [...rows].sort(
-      (a, b) => Number(Boolean(b.verified)) - Number(Boolean(a.verified)) || a.name.localeCompare(b.name),
-    );
+    return [...rows].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   }, [heroes, query, star]);
+  const groups = useMemo(() => groupByLetter(list, (h) => h.name), [list]);
+  const jumpItems = useMemo(
+    () => groups.map((g) => ({ id: `az-${g.letter}`, label: g.letter })),
+    [groups],
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -216,38 +219,54 @@ function HeroAdmin() {
       ) : null}
       <IconDialog hero={iconHero} onClose={() => setIconHero(null)} />
       <ul className="flex flex-col gap-1">
-        {list.map((hero) => (
-          <li key={hero.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
-            <div className="flex min-w-0 items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setIconHero(hero)}
-                className="shrink-0 rounded-md"
-                aria-label={`Edit icon · ${hero.name}`}
-              >
-                <HeroPortrait hero={hero} size="sm" />
-              </button>
-              <div className="min-w-0">
-                <p className="flex items-center gap-1.5 text-sm font-medium">
-                  <span className="truncate">{hero.name}</span>
-                  {hero.verified ? (
-                    <Star className="size-3.5 shrink-0 fill-current" strokeWidth={1.5} aria-label="In-game verified" />
-                  ) : null}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {hero.verified
-                    ? `In-game verified · ${formatInGameDate(hero.checkedAt)} · `
-                    : ""}
-                  {hero.short} · {heroRarity(hero)}★ · {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]} · {hero.tier}
-                </p>
-              </div>
-            </div>
-            <Button size="sm" variant="secondary" onClick={() => setEditing(hero)}>
-              Edit
-            </Button>
+        {groups.map((group) => (
+          <li key={group.letter} className="flex flex-col gap-1">
+            <p
+              id={`az-${group.letter}`}
+              className="scroll-mt-3 px-1 pt-3 pb-1 text-xs font-medium tracking-[0.18em] text-muted-foreground"
+            >
+              {group.letter}
+            </p>
+            <ul className="flex flex-col gap-1">
+              {group.rows.map((hero) => {
+                const checked = daysAgoLabel(hero.checkedAt);
+                return (
+                  <li key={hero.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIconHero(hero)}
+                        className="shrink-0 rounded-md"
+                        aria-label={`Edit icon · ${hero.name}`}
+                      >
+                        <HeroPortrait hero={hero} size="sm" />
+                      </button>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 text-sm font-medium">
+                          <span className="truncate">{hero.name}</span>
+                          {hero.verified ? (
+                            <Star className="size-3.5 shrink-0 fill-current" strokeWidth={1.5} aria-label="In-game verified" />
+                          ) : null}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {hero.verified
+                            ? `In-game verified${checked ? ` · ${checked}` : ""} · `
+                            : ""}
+                          {hero.short} · {heroRarity(hero)}★ · {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]} · {hero.tier}
+                        </p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="secondary" onClick={() => setEditing(hero)}>
+                      Edit
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
           </li>
         ))}
       </ul>
+      {jumpItems.length > 1 ? <JumpRail items={jumpItems} /> : null}
     </div>
   );
 }
@@ -631,8 +650,7 @@ function HeroForm({
             In-game verified
           </span>
           <span className="mt-0.5 block text-xs text-muted-foreground">
-            Kit is the same as the journal. Saving with this on stamps today
-            {form.verified && form.checkedAt ? ` (last: ${formatInGameDate(form.checkedAt)})` : ""}.
+            Kit is the same as the journal. Saving with this on stamps today{form.verified && daysAgoLabel(form.checkedAt) ? ` (last: ${daysAgoLabel(form.checkedAt)})` : ""}.
           </span>
         </span>
       </label>
@@ -1004,6 +1022,253 @@ function PresetForm({
   );
 }
 
+function IdeaAdmin() {
+  const [ideas, setIdeas] = useState<StrategyIdea[] | null>(null);
+  const [filter, setFilter] = useState<StrategyIdeaStatus | "all">("inbox");
+  const [body, setBody] = useState("");
+  const [about, setAbout] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    void listStrategyIdeas()
+      .then(setIdeas)
+      .catch((err) => {
+        toast.error(err instanceof Error ? err.message : "Could not load ideas");
+        setIdeas([]);
+      });
+  }, []);
+
+  const counts = useMemo(() => {
+    const list = ideas ?? [];
+    return {
+      inbox: list.filter((i) => i.status === "inbox").length,
+      later: list.filter((i) => i.status === "later").length,
+      keep: list.filter((i) => i.status === "keep").length,
+      skip: list.filter((i) => i.status === "skip").length,
+    };
+  }, [ideas]);
+
+  const shown = useMemo(() => {
+    if (!ideas) return [];
+    if (filter === "all") return ideas;
+    return ideas.filter((i) => i.status === filter);
+  }, [ideas, filter]);
+
+  async function submit() {
+    const nextBody = body.trim();
+    if (nextBody.length < 8) {
+      toast.error("Write a bit more — at least a sentence.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const next = await saveStrategyIdea({
+        data: { body: nextBody, about: about.trim() },
+      });
+      setIdeas(next);
+      setBody("");
+      setAbout("");
+      setFilter("inbox");
+      toast("Logged. Ask in chat to review.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <section className="flex flex-col gap-3 rounded-xl bg-card px-4 py-4 shadow-[var(--shadow-border)]">
+        <div>
+          <h2 className="font-display text-lg tracking-tight">Log a thought</h2>
+          <p className="mt-1 max-w-lg text-sm leading-relaxed text-muted-foreground">
+            Recipes, Watches, walls. Not a lineup. Review happens in chat — Keep, Skip, or Later with why.
+          </p>
+        </div>
+        <Field label="Thought">
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            maxLength={2000}
+            rows={5}
+            placeholder="Put ML.Luluca on the anti-revive strip list because…"
+          />
+        </Field>
+        <Field label="About (optional)">
+          <Input
+            value={about}
+            onChange={(e) => setAbout(e.target.value)}
+            maxLength={120}
+            placeholder="Harsetti stall · Strip"
+          />
+        </Field>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={() => void submit()} disabled={busy || body.trim().length < 8}>
+            Log
+          </Button>
+          <p className="font-mono text-xs tabular-nums text-muted-foreground">{body.trim().length}/2000</p>
+        </div>
+      </section>
+
+      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
+        {(
+          [
+            ["inbox", "Inbox", counts.inbox],
+            ["later", "Later", counts.later],
+            ["keep", "Keep", counts.keep],
+            ["skip", "Skip", counts.skip],
+            ["all", "All", ideas?.length ?? 0],
+          ] as const
+        ).map(([id, label, n]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setFilter(id)}
+            className={cn(
+              "h-11 shrink-0 rounded-full px-4 text-sm",
+              filter === id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+            )}
+          >
+            {label}
+            <span className="ml-2 font-mono tabular-nums opacity-70">{n}</span>
+          </button>
+        ))}
+      </div>
+
+      {!ideas ? (
+        <p className="text-sm text-muted-foreground">Loading ideas…</p>
+      ) : shown.length === 0 ? (
+        <p className="rounded-xl bg-card px-4 py-5 text-sm text-muted-foreground shadow-[var(--shadow-border)]">
+          {filter === "inbox"
+            ? "Inbox is empty. Log a thought above, then ask in chat to review."
+            : filter === "all"
+              ? "No ideas yet."
+              : `Nothing in ${filter}.`}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {shown.map((idea) => (
+            <IdeaCard key={idea.id} idea={idea} onChange={setIdeas} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+const STATUS_LABEL: Record<StrategyIdeaStatus, string> = {
+  inbox: "Inbox",
+  later: "Later",
+  keep: "Keep",
+  skip: "Skip",
+};
+
+function IdeaCard({
+  idea,
+  onChange,
+}: {
+  idea: StrategyIdea;
+  onChange: (next: StrategyIdea[]) => void;
+}) {
+  const [verdict, setVerdict] = useState(idea.verdict);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setVerdict(idea.verdict);
+  }, [idea.verdict]);
+
+  async function setStatus(status: StrategyIdeaStatus) {
+    setBusy(true);
+    try {
+      const next = await setStrategyIdeaStatus({
+        data: { id: idea.id, status, verdict: verdict.trim() },
+      });
+      onChange(next);
+      toast(
+        status === "keep"
+          ? "Kept"
+          : status === "skip"
+            ? "Skipped"
+            : status === "later"
+              ? "Later"
+              : "Back in inbox",
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    try {
+      const next = await deleteStrategyIdea({ data: { id: idea.id } });
+      onChange(next);
+      toast("Removed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li className="flex flex-col gap-3 rounded-xl bg-card px-4 py-4 shadow-[var(--shadow-border)]">
+      <div>
+        {idea.about ? (
+          <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">{idea.about}</p>
+        ) : null}
+        <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap">{idea.body}</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {idea.author} · {ago(idea.at)} · {STATUS_LABEL[idea.status]}
+        </p>
+      </div>
+      <Field label="Verdict (from chat)">
+        <Textarea
+          value={verdict}
+          onChange={(e) => setVerdict(e.target.value)}
+          maxLength={800}
+          rows={2}
+          placeholder="Why we kept, skipped, or parked this…"
+        />
+      </Field>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={idea.status === "keep" ? "default" : "secondary"}
+          disabled={busy}
+          onClick={() => void setStatus("keep")}
+        >
+          Keep
+        </Button>
+        <Button
+          variant={idea.status === "later" ? "default" : "secondary"}
+          disabled={busy}
+          onClick={() => void setStatus("later")}
+        >
+          Later
+        </Button>
+        <Button
+          variant={idea.status === "skip" ? "default" : "secondary"}
+          disabled={busy}
+          onClick={() => void setStatus("skip")}
+        >
+          Skip
+        </Button>
+        {idea.status !== "inbox" ? (
+          <Button variant="ghost" disabled={busy} onClick={() => void setStatus("inbox")}>
+            Inbox
+          </Button>
+        ) : null}
+        <Button variant="ghost" disabled={busy} onClick={() => void remove()}>
+          Delete
+        </Button>
+      </div>
+    </li>
+  );
+}
+
 function MemberAdmin() {
   const me = useArenaStore((s) => s.role);
   const email = useArenaStore((s) => s.email);
@@ -1205,7 +1470,7 @@ function AnalyticsPanel() {
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground">
-        Fills from Won / Lost on Scout. Stay on — generated strategies later will use this.
+        Recorded fights stay here for later. Scout no longer asks Won or Lost.
         {fights === 0 ? " No fights recorded yet." : ` ${fights} recorded.`}
       </p>
       <div className="flex gap-1">
@@ -1225,6 +1490,9 @@ function AnalyticsPanel() {
           }}
         >
           Export
+        </Button>
+        <Button size="sm" variant="ghost" asChild>
+          <Link to="/log">Fight log</Link>
         </Button>
       </div>
       <section>

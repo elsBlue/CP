@@ -3,6 +3,7 @@ import { SAMPLE_ROSTER, STARTER_ROSTER } from "./heroes";
 import { DEFAULT_VP } from "./ranks";
 import { clearMatches as apiClear, removeMatch as apiRemove, saveArena, saveMatch } from "./api";
 import type { ArenaPayload } from "./api";
+import type { ScoutMode } from "./formation";
 import type { MatchLog, MemberRole, RosterEntry } from "./types";
 
 type ArenaState = {
@@ -10,13 +11,21 @@ type ArenaState = {
   role: MemberRole;
   email: string | null;
   roster: Record<string, RosterEntry>;
+  scoutMode: ScoutMode;
   enemy: string[];
+  enemyArena: string[];
+  enemyGw: string[];
+  enemyGw2: string[];
+  gwRound: 1 | 2;
   lastTeam: string[];
   vp: number;
   matches: MatchLog[];
   restrictToRoster: boolean;
   applyServer: (payload: ArenaPayload) => void;
   resetSession: () => void;
+  setScoutMode: (mode: ScoutMode) => void;
+  setGwRound: (round: 1 | 2) => void;
+  setGwSlot: (round: 1 | 2, index: number, id: string | null) => void;
   setEnemySlot: (index: number, id: string | null) => void;
   setEnemy: (ids: string[]) => void;
   setLastTeam: (ids: string[]) => void;
@@ -29,8 +38,30 @@ type ArenaState = {
   clearMatches: () => void;
 };
 
-function emptySlots(): string[] {
+function pad(ids: string[], n: number): string[] {
+  const next = Array.from({ length: n }, () => "");
+  ids.slice(0, n).forEach((id, i) => {
+    next[i] = id ?? "";
+  });
+  return next;
+}
+
+function emptyArena(): string[] {
   return ["", "", "", ""];
+}
+
+function emptyGw(): string[] {
+  return ["", "", "", ""];
+}
+
+function clampGw(ids: string[]): string[] {
+  const next = pad(ids, 4);
+  let n = 0;
+  return next.map((id) => {
+    if (!id) return "";
+    n += 1;
+    return n <= 3 ? id : "";
+  });
 }
 
 function rosterFrom(ids: readonly string[]): Record<string, RosterEntry> {
@@ -44,8 +75,13 @@ const emptyState = {
   role: "member" as MemberRole,
   email: null as string | null,
   roster: {},
-  enemy: emptySlots(),
-  lastTeam: emptySlots(),
+  scoutMode: "gw" as ScoutMode,
+  enemy: emptyGw(),
+  enemyArena: emptyArena(),
+  enemyGw: emptyGw(),
+  enemyGw2: emptyGw(),
+  gwRound: 1 as 1 | 2,
+  lastTeam: emptyArena(),
   vp: DEFAULT_VP,
   matches: [] as MatchLog[],
   restrictToRoster: false,
@@ -63,9 +99,13 @@ function persistState() {
       data: {
         vp: s.vp,
         restrictToRoster: s.restrictToRoster,
-        enemy: s.enemy,
+        enemy: s.enemyArena,
         lastTeam: s.lastTeam,
         roster: s.roster,
+        scoutMode: s.scoutMode,
+        enemyGw: s.enemyGw,
+        enemyGw2: s.enemyGw2,
+        gwRound: s.gwRound,
       },
     }).catch(() => {
       /* keep local copy; next edit retries */
@@ -75,31 +115,79 @@ function persistState() {
 
 export const useArenaStore = create<ArenaState>((set, get) => ({
   ...emptyState,
-  applyServer: (payload) =>
+  applyServer: (payload) => {
+    const mode = payload.scoutMode ?? "gw";
+    const enemyArena = pad(payload.enemyArena?.length ? payload.enemyArena : payload.enemy, 4);
+    const enemyGw = clampGw(payload.enemyGw ?? []);
+    const enemyGw2 = clampGw(payload.enemyGw2 ?? []);
+    const gwRound = payload.gwRound === 2 ? 2 : 1;
     set({
       hydrated: true,
       role: payload.role,
       email: payload.email,
       roster: payload.roster,
-      enemy: payload.enemy.length ? payload.enemy : emptyState.enemy,
+      scoutMode: mode,
+      enemyArena,
+      enemyGw,
+      enemyGw2,
+      gwRound,
+      enemy: mode === "gw" ? (gwRound === 2 ? enemyGw2 : enemyGw) : enemyArena,
       lastTeam: payload.lastTeam,
       vp: payload.vp,
       matches: payload.matches,
       restrictToRoster: payload.restrictToRoster,
-    }),
+    });
+  },
   resetSession: () => set({ ...emptyState }),
+  setScoutMode: (mode) => {
+    const s = get();
+    const enemy =
+      mode === "gw" ? (s.gwRound === 2 ? s.enemyGw2 : s.enemyGw) : pad(s.enemyArena, 4);
+    set({ scoutMode: mode, enemy });
+    persistState();
+  },
+  setGwRound: (round) => {
+    const board = round === 2 ? get().enemyGw2 : get().enemyGw;
+    set({ gwRound: round, enemy: pad(board, 4) });
+    persistState();
+  },
+  setGwSlot: (round, index, id) => {
+    const other = round === 2 ? get().enemyGw : get().enemyGw2;
+    if (id && other.includes(id)) return;
+    const key = round === 2 ? "enemyGw2" : "enemyGw";
+    const board = clampGw(get()[key]);
+    const next = [...board];
+    const filling = Boolean(id) && !next[index];
+    const count = next.filter(Boolean).length;
+    if (filling && count >= 3) return;
+    next[index] = id ?? "";
+    const clamped = clampGw(next);
+    if (round === 2) set({ enemyGw2: clamped, gwRound: 2, enemy: clamped });
+    else set({ enemyGw: clamped, gwRound: 1, enemy: clamped });
+    persistState();
+  },
   setEnemySlot: (index, id) => {
-    const enemy = [...get().enemy];
-    enemy[index] = id ?? "";
-    set({ enemy });
+    const mode = get().scoutMode;
+    if (mode === "gw") {
+      get().setGwSlot(get().gwRound, index, id);
+      return;
+    }
+    const enemyArena = pad(get().enemyArena, 4);
+    enemyArena[index] = id ?? "";
+    set({ enemyArena, enemy: enemyArena });
     persistState();
   },
   setEnemy: (ids) => {
-    const enemy = emptySlots();
-    ids.slice(0, 4).forEach((id, i) => {
-      enemy[i] = id;
-    });
-    set({ enemy });
+    const mode = get().scoutMode;
+    if (mode === "gw") {
+      const clamped = clampGw(ids);
+      const round = get().gwRound;
+      if (round === 2) set({ enemyGw2: clamped, enemy: clamped });
+      else set({ enemyGw: clamped, enemy: clamped });
+    } else {
+      const enemyArena = pad(ids, 4);
+      set({ enemyArena, enemy: enemyArena });
+    }
     persistState();
   },
   setLastTeam: (ids) => {
