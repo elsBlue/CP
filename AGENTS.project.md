@@ -40,5 +40,6 @@ read [`src/lib/e7/SCOUT_AUDIT.md`](src/lib/e7/SCOUT_AUDIT.md) and run the
 checklist. The bug class is **ungrounded copy**: a sentence true of a kit
 in isolation, false for this wall or this filled team.
 
-Do not add wall-conditional warnings to `jobFor`. Those belong in `whyFor`
-or `pitfallsFor`, gated on verified uniques actually present.
+Journal screenshots, research zips, and kit dumps stay **out of the repo**.
+Verified kits live in `src/lib/e7/heroes.ts`. Do not re-copy attachments into
+the tree.

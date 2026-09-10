@@ -3,3 +3,16 @@ node_modules/
 .github_repo
 .env
 .env.*
+dist/
+.output/
+.vercel/
+.tanstack/
+.nitro/
+attachments/
+Crownpath_research/
+screenshots/
+artifacts/
+.grok/status
+.grok/preview.log
+*.log
+.DS_Store
