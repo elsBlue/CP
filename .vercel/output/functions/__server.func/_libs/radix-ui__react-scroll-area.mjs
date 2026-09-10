@@ -1,8 +1,8 @@
 import { o as __toESM } from "../_runtime.mjs";
-import { n as require_react, t as useComposedRefs } from "./@radix-ui/react-compose-refs+[...].mjs";
-import { n as require_jsx_runtime, t as createContextScope } from "./radix-ui__react-context+react.mjs";
-import { d as useCallbackRef, f as Primitive, l as Presence, u as useLayoutEffect2 } from "./@radix-ui/react-dialog+[...].mjs";
+import { u as require_react } from "./@floating-ui/react-dom+[...].mjs";
+import { i as Presence, l as createContextScope, m as require_jsx_runtime, o as useLayoutEffect2, p as useComposedRefs, s as Primitive } from "./@radix-ui/react-checkbox+[...].mjs";
 import { t as composeEventHandlers } from "./radix-ui__primitive.mjs";
+import { h as useCallbackRef } from "./@radix-ui/react-dialog+[...].mjs";
 import { t as useDirection } from "./radix-ui__react-direction.mjs";
 import { t as clamp } from "./radix-ui__number.mjs";
 //#region node_modules/@radix-ui/react-scroll-area/dist/index.mjs

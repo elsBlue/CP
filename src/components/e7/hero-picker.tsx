@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CLASS_LABEL, ELEMENT_LABEL } from "@/lib/e7/heroes";
 import { useCatalog } from "@/lib/e7/catalog";
@@ -37,8 +38,12 @@ export function HeroPicker({
   const [multi, setMulti] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [wide, setWide] = useState(false);
+  const [includePending, setIncludePending] = useState(false);
   const heroes = useCatalog((s) => s.heroes);
-  const verified = useMemo(() => heroes.filter((h) => h.verified), [heroes]);
+  const poolHeroes = useMemo(
+    () => (includePending ? heroes : heroes.filter((h) => h.verified)),
+    [heroes, includePending],
+  );
   const takenSet = useMemo(() => new Set(taken), [taken]);
   const canMulti = maxSelect > 1;
   const mode = canMulti && multi;
@@ -56,16 +61,19 @@ export function HeroPicker({
   }, [query, canMulti]);
 
   const list = useMemo(() => {
-    let pool = searchHeroes(query, verified);
+    let pool = searchHeroes(query, poolHeroes);
     if (els.length) pool = pool.filter((h) => els.includes(h.element));
     if (cls.length) pool = pool.filter((h) => h.class && cls.includes(h.class));
-    return [...pool].sort((a, b) => a.name.localeCompare(b.name));
-  }, [query, els, cls, verified]);
+    return [...pool].sort((a, b) => {
+      if (a.verified !== b.verified) return a.verified ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [query, els, cls, poolHeroes]);
 
   const suggestions = useMemo(() => {
     if (searchTokens(query).length < 2) return [];
-    return bestHeroMatches(query, verified).filter((h) => !takenSet.has(h.id)).slice(0, maxSelect);
-  }, [query, verified, takenSet, maxSelect]);
+    return bestHeroMatches(query, poolHeroes).filter((h) => !takenSet.has(h.id)).slice(0, maxSelect);
+  }, [query, poolHeroes, takenSet, maxSelect]);
 
   const filterCount = els.length + cls.length;
 
@@ -116,7 +124,9 @@ export function HeroPicker({
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
-            Only in-game verified kits. Type names separated by commas.
+            {includePending
+              ? "Verified and pending kits. Pending kits do not change the wall type."
+              : "In-game verified kits. Turn on pending to pick units not yet checked."}
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-3 px-5 pb-3">
@@ -126,6 +136,10 @@ export function HeroPicker({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rinak, Arunka, Iseria, Krau"
           />
+          <div className="flex h-10 items-center justify-between gap-3 rounded-xl bg-secondary px-3">
+            <p className="text-sm font-medium">Include pending</p>
+            <Switch checked={includePending} onCheckedChange={setIncludePending} />
+          </div>
           <div className="flex items-center gap-2">
             <Button
               type="button"

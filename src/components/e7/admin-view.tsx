@@ -3,6 +3,16 @@ import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
 import { HeroPortrait } from "@/components/hero-portrait";
+import {
+  FilterChip,
+  LetterHead,
+  LIST,
+  PAGE,
+  PageHeader,
+  RowCard,
+  StatStrip,
+  TOOLBAR,
+} from "@/components/e7/chrome";
 import { JumpRail, groupByLetter } from "@/components/e7/jump-rail";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -78,40 +88,26 @@ function applyCatalog(next: { heroes: Hero[]; recipes: Recipe[]; presets: Defens
 
 export function AdminView() {
   const [tab, setTab] = useState<Tab>("units");
-  const unitCount = useCatalog((s) => s.heroes.length);
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Admin</p>
-        <h1 className="font-display text-3xl leading-[1.1] tracking-tight sm:text-4xl">Catalog</h1>
-        <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
-          Units, strategies, and wall presets are shared. Progress stays private.
-        </p>
-        <p className="font-mono text-sm tabular-nums text-muted-foreground">{unitCount} units</p>
-      </header>
+    <div className={PAGE}>
+      <PageHeader kicker="Admin" title="Catalog">
+        Units, lineup strategies, and example defenses are shared. Progress stays private.
+      </PageHeader>
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
         {(
           [
             ["units", "Units"],
             ["strategies", "Strategies"],
             ["ideas", "Ideas"],
-            ["walls", "Walls"],
+            ["walls", "Examples"],
             ["members", "Members"],
             ["log", "Log"],
             ["stats", "Stats"],
           ] as const
         ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={cn(
-              "h-11 shrink-0 rounded-full px-4 text-sm",
-              tab === id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
-            )}
-          >
+          <FilterChip key={id} on={tab === id} onClick={() => setTab(id)}>
             {label}
-          </button>
+          </FilterChip>
         ))}
       </div>
       {tab === "units" ? <HeroAdmin /> : null}
@@ -151,14 +147,19 @@ function HeroAdmin() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-end justify-between gap-3">
-        <p className="font-mono text-sm tabular-nums text-muted-foreground">
-          {query || star ? `${list.length} of ${heroes.length}` : `${heroes.length} units`}
-          {` · ${heroes.filter((h) => h.verified).length} in-game verified`}
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-5">
+      <StatStrip
+        items={[
+          { label: "Units", value: String(heroes.length) },
+          { label: "Verified", value: String(heroes.filter((h) => h.verified).length) },
+          { label: "Pending", value: String(heroes.filter((h) => !h.verified).length) },
+          {
+            label: "Shown",
+            value: query || star ? `${list.length}` : String(heroes.length),
+          },
+        ]}
+      />
+      <div className={TOOLBAR}>
         {(
           [
             [0, "All", heroes.length],
@@ -167,22 +168,15 @@ function HeroAdmin() {
             [3, "3★", starCounts[3]],
           ] as const
         ).map(([id, label, count]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setStar(id)}
-            className={cn(
-              "h-10 shrink-0 rounded-full px-3 text-sm tabular-nums",
-              star === id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
-            )}
-          >
+          <FilterChip key={id} on={star === id} onClick={() => setStar(id)}>
             {label} {count}
-          </button>
+          </FilterChip>
         ))}
       </div>
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search units…" className="sm:flex-1" />
         <Button
+          variant="secondary"
           onClick={() =>
             setEditing({
               id: "",
@@ -218,21 +212,16 @@ function HeroAdmin() {
         />
       ) : null}
       <IconDialog hero={iconHero} onClose={() => setIconHero(null)} />
-      <ul className="flex flex-col gap-1">
+      <ul className={LIST}>
         {groups.map((group) => (
           <li key={group.letter} className="flex flex-col gap-1">
-            <p
-              id={`az-${group.letter}`}
-              className="scroll-mt-3 px-1 pt-3 pb-1 text-xs font-medium tracking-[0.18em] text-muted-foreground"
-            >
-              {group.letter}
-            </p>
-            <ul className="flex flex-col gap-1">
+            <LetterHead letter={group.letter} />
+            <ul className={LIST}>
               {group.rows.map((hero) => {
                 const checked = daysAgoLabel(hero.checkedAt);
                 return (
-                  <li key={hero.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
-                    <div className="flex min-w-0 items-center gap-3">
+                  <li key={hero.id}>
+                    <RowCard>
                       <button
                         type="button"
                         onClick={() => setIconHero(hero)}
@@ -241,7 +230,7 @@ function HeroAdmin() {
                       >
                         <HeroPortrait hero={hero} size="sm" />
                       </button>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-1.5 text-sm font-medium">
                           <span className="truncate">{hero.name}</span>
                           {hero.verified ? (
@@ -250,15 +239,15 @@ function HeroAdmin() {
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
                           {hero.verified
-                            ? `In-game verified${checked ? ` · ${checked}` : ""} · `
-                            : ""}
-                          {hero.short} · {heroRarity(hero)}★ · {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]} · {hero.tier}
+                            ? `Verified${checked ? ` · ${checked}` : ""} · `
+                            : "Pending · "}
+                          {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]} · {heroRarity(hero)}★
                         </p>
                       </div>
-                    </div>
-                    <Button size="sm" variant="secondary" onClick={() => setEditing(hero)}>
-                      Edit
-                    </Button>
+                      <Button size="sm" variant="secondary" onClick={() => setEditing(hero)}>
+                        Edit
+                      </Button>
+                    </RowCard>
                   </li>
                 );
               })}
@@ -693,45 +682,42 @@ function RecipeAdmin() {
       ? recipes.filter((r) => r.createdBy === me.id)
       : recipes;
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
+      <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
+        Lineup plans we try into a wall type. Eight seeds. Not example enemy teams.
+      </p>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex gap-1">
+        <div className={TOOLBAR}>
           {(["all", "mine"] as const).map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setFilter(id)}
-              className={cn(
-                "h-11 rounded-full px-4 text-sm",
-                filter === id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
-              )}
-            >
+            <FilterChip key={id} on={filter === id} onClick={() => setFilter(id)}>
               {id === "all" ? "All" : "Mine"}
-            </button>
+            </FilterChip>
           ))}
         </div>
-        <Button onClick={() => setEditing(blank)}>Add strategy</Button>
+        <Button variant="secondary" onClick={() => setEditing(blank)}>Add strategy</Button>
       </div>
       {editing ? <RecipeForm initial={editing} onClose={() => setEditing(null)} onSaved={() => setEditing(null)} /> : null}
-      <ul className="flex flex-col gap-1">
+      <ul className={LIST}>
         {list.map((recipe) => (
-          <li key={recipe.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{recipe.name}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {recipe.author || "Catalog"}
-                {recipe.vs.length > 0
-                  ? ` · ${recipe.vs.map((v) => ARCHETYPE_META[v]?.title ?? v).join(", ")}`
-                  : ""}
-              </p>
-            </div>
-            <Button size="sm" variant="secondary" onClick={() => setEditing(recipe)}>
-              Edit
-            </Button>
+          <li key={recipe.id}>
+            <RowCard>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{recipe.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {recipe.author || "Catalog"}
+                  {recipe.vs.length > 0
+                    ? ` · ${recipe.vs.map((v) => ARCHETYPE_META[v]?.title ?? v).join(", ")}`
+                    : ""}
+                </p>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => setEditing(recipe)}>
+                Edit
+              </Button>
+            </RowCard>
           </li>
         ))}
         {list.length === 0 ? (
-          <li className="rounded-xl bg-card px-4 py-5 text-sm text-muted-foreground shadow-[var(--shadow-border)]">
+          <li className="rounded-xl bg-card px-3 py-5 text-sm text-muted-foreground shadow-[var(--shadow-border)]">
             {filter === "mine" ? "No strategies saved under your account yet." : "No strategies."}
           </li>
         ) : null}
@@ -891,10 +877,13 @@ function PresetAdmin() {
   const heroes = useCatalog((s) => s.heroes);
   const [editing, setEditing] = useState<DefensePreset | null>(null);
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
+      <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
+        Ready-made enemy teams for Scout. These are not the eight wall types, and not lineup strategies.
+      </p>
       <div className="flex justify-end">
-        <Button onClick={() => setEditing({ id: "", name: "", heroIds: ["", "", "", ""], blurb: "" })}>
-          Add wall
+        <Button variant="secondary" onClick={() => setEditing({ id: "", name: "", heroIds: ["", "", "", ""], blurb: "" })}>
+          Add example
         </Button>
       </div>
       {editing ? (
@@ -905,16 +894,18 @@ function PresetAdmin() {
           onSaved={() => setEditing(null)}
         />
       ) : null}
-      <ul className="flex flex-col gap-1">
+      <ul className={LIST}>
         {presets.map((p) => (
-          <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)]">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{p.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{p.heroIds.filter(Boolean).join(" · ")}</p>
-            </div>
-            <Button size="sm" variant="secondary" onClick={() => setEditing(p)}>
-              Edit
-            </Button>
+          <li key={p.id}>
+            <RowCard>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{p.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{p.heroIds.filter(Boolean).join(" · ")}</p>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => setEditing(p)}>
+                Edit
+              </Button>
+            </RowCard>
           </li>
         ))}
       </ul>
@@ -945,7 +936,7 @@ function PresetForm({
     try {
       const next = await savePreset({ data: form });
       applyCatalog(next);
-      toast("Wall saved");
+      toast("Example saved");
       onSaved();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save");
@@ -960,7 +951,7 @@ function PresetForm({
     try {
       const next = await deletePreset({ data: { id: form.id } });
       applyCatalog(next);
-      toast("Wall removed");
+      toast("Example removed");
       onSaved();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not delete");
@@ -972,7 +963,7 @@ function PresetForm({
   return (
     <section className="flex flex-col gap-3 rounded-xl bg-card p-4 shadow-[var(--shadow-border)] sm:p-5">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-xl tracking-tight">{isNew ? "New wall" : "Edit wall"}</h2>
+        <h2 className="font-display text-xl tracking-tight">{isNew ? "New example" : "Edit example"}</h2>
         <button type="button" className="h-11 px-2 text-sm text-muted-foreground" onClick={onClose}>
           Close
         </button>
@@ -1111,7 +1102,7 @@ function IdeaAdmin() {
         </div>
       </section>
 
-      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
+      <div className={cn("no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1")}>
         {(
           [
             ["inbox", "Inbox", counts.inbox],
@@ -1121,18 +1112,10 @@ function IdeaAdmin() {
             ["all", "All", ideas?.length ?? 0],
           ] as const
         ).map(([id, label, n]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setFilter(id)}
-            className={cn(
-              "h-11 shrink-0 rounded-full px-4 text-sm",
-              filter === id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
-            )}
-          >
+          <FilterChip key={id} on={filter === id} onClick={() => setFilter(id)}>
             {label}
-            <span className="ml-2 font-mono tabular-nums opacity-70">{n}</span>
-          </button>
+            <span className="ml-1.5 font-mono tabular-nums opacity-70">{n}</span>
+          </FilterChip>
         ))}
       </div>
 
@@ -1306,36 +1289,35 @@ function MemberAdmin() {
       ) : (
         <p className="text-sm text-muted-foreground">In-game names are set by the owner.</p>
       )}
-      <ul className="flex flex-col gap-1">
+      <ul className={LIST}>
         {members.map((m) => (
-          <li
-            key={m.userId}
-            className="flex flex-col gap-3 rounded-xl bg-card px-4 py-3 shadow-[var(--shadow-border)] sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">
-                {m.ingameName || m.displayName || m.email || m.userId}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">{m.email ?? m.userId}</p>
-              {owner ? (
-                <IngameNameField member={m} onSaved={setMembers} />
-              ) : null}
-            </div>
-            <Button
-              size="sm"
-              variant={m.role === "admin" ? "default" : "secondary"}
-              disabled={
-                busyId === m.userId ||
-                (m.role === "admin" && me === "admin" && members.filter((x) => x.role === "admin").length === 1)
-              }
-              onClick={() => void toggle(m)}
-            >
-              {m.role === "admin" ? "Admin" : "Member"}
-            </Button>
+          <li key={m.userId}>
+            <RowCard className="flex-col items-stretch sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {m.ingameName || m.displayName || m.email || m.userId}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">{m.email ?? m.userId}</p>
+                {owner ? (
+                  <IngameNameField member={m} onSaved={setMembers} />
+                ) : null}
+              </div>
+              <Button
+                size="sm"
+                variant={m.role === "admin" ? "default" : "secondary"}
+                disabled={
+                  busyId === m.userId ||
+                  (m.role === "admin" && me === "admin" && members.filter((x) => x.role === "admin").length === 1)
+                }
+                onClick={() => void toggle(m)}
+              >
+                {m.role === "admin" ? "Admin" : "Member"}
+              </Button>
+            </RowCard>
           </li>
         ))}
         {members.length === 0 ? (
-          <li className="rounded-xl bg-card px-4 py-5 text-sm text-muted-foreground shadow-[var(--shadow-border)]">
+          <li className="rounded-xl bg-card px-3 py-5 text-sm text-muted-foreground shadow-[var(--shadow-border)]">
             No members yet.
           </li>
         ) : null}

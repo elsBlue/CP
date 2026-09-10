@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { HeroRow } from "@/components/e7/hero-line";
+import { PAGE, PageHeader } from "@/components/e7/chrome";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,18 +60,10 @@ export function LogView() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="rise-in flex flex-col gap-2">
-        <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-          Results
-        </p>
-        <h1 className="font-display text-3xl leading-[1.1] tracking-tight sm:text-4xl">
-          Fight log
-        </h1>
-        <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
-          Older fights stay here. Scout no longer records Won or Lost.
-        </p>
-      </header>
+    <div className={PAGE}>
+      <PageHeader kicker="Results" title="Fight log">
+        Older fights stay here. Scout no longer records Won or Lost.
+      </PageHeader>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Card>

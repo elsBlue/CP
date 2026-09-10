@@ -1,5 +1,5 @@
 {
-  "url": "http://127.0.0.1:8081/login",
+  "url": "http://127.0.0.1:8081/",
   "viewports": {
     "desktop": {
       "width": 1280,
@@ -7,9 +7,9 @@
       "status": 200,
       "title": "Crownpath",
       "hasCanvas": false,
-      "bodyTextLen": 219,
-      "bodyTextHash": "6c93169383f48bbe70ef40092cba86ec44d86b85e2f0b87eb7abab994e39924c",
-      "bodyTextPrefix": "Crownpath Guild scout. Each member keeps their own roster and re",
+      "bodyTextLen": 37,
+      "bodyTextHash": "ababe3159ab8962290a2f9cdb831789c826747705a474b7af2d2c7d4a5e2518f",
+      "bodyTextPrefix": "Crownpath by skybreaker Loading data…",
       "horizontalOverflow": false,
       "consoleErrors": [],
       "pageErrors": [],
@@ -21,9 +21,9 @@
       "status": 200,
       "title": "Crownpath",
       "hasCanvas": false,
-      "bodyTextLen": 219,
-      "bodyTextHash": "6c93169383f48bbe70ef40092cba86ec44d86b85e2f0b87eb7abab994e39924c",
-      "bodyTextPrefix": "Crownpath Guild scout. Each member keeps their own roster and re",
+      "bodyTextLen": 37,
+      "bodyTextHash": "ababe3159ab8962290a2f9cdb831789c826747705a474b7af2d2c7d4a5e2518f",
+      "bodyTextPrefix": "Crownpath by skybreaker Loading data…",
       "horizontalOverflow": false,
       "consoleErrors": [],
       "pageErrors": [],

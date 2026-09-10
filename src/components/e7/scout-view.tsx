@@ -26,6 +26,7 @@ export function ScoutView() {
   const restrict = useArenaStore((s) => s.restrictToRoster);
   const setRestrict = useArenaStore((s) => s.setRestrict);
   const setEnemy = useArenaStore((s) => s.setEnemy);
+  const clearWall = useArenaStore((s) => s.clearWall);
   const setEnemySlot = useArenaStore((s) => s.setEnemySlot);
   const setLastTeam = useArenaStore((s) => s.setLastTeam);
   const presets = useCatalog((s) => s.presets);
@@ -87,7 +88,7 @@ export function ScoutView() {
   );
 
   return (
-    <div className="flex flex-col gap-6 xl:gap-8">
+    <div className="flex flex-col gap-5 xl:gap-8">
       <div className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
@@ -105,7 +106,7 @@ export function ScoutView() {
                 type="button"
                 onClick={() => setScoutMode(id)}
                 className={cn(
-                  "min-h-9 rounded-full px-3.5 text-sm",
+                  "h-10 rounded-full px-3.5 text-sm",
                   scoutMode === id
                     ? "bg-card text-foreground shadow-[var(--shadow-border)]"
                     : "text-muted-foreground",
@@ -136,13 +137,13 @@ export function ScoutView() {
                   onClick={() => setWallsOpen((v) => !v)}
                   aria-expanded={wallsOpen}
                 >
-                  {wallsOpen ? "Close" : "Walls"}
+                  {wallsOpen ? "Close" : "Examples"}
                 </button>
               ) : null}
               <button
                 type="button"
                 className="min-h-11 px-2 text-sm text-muted-foreground hover:text-foreground"
-                onClick={() => setEnemy([])}
+                onClick={() => clearWall()}
               >
                 Clear
               </button>
@@ -288,7 +289,7 @@ export function ScoutView() {
             </p>
           ) : null}
           {read && read.watch.length > 0 ? (
-            <div className="mt-1 flex max-w-md flex-col gap-1.5">
+            <div className="mt-1 flex max-w-md flex-col gap-1.5 pr-16 md:pr-0">
               <ul className="flex flex-col gap-1">
                 {(watchAll ? read.watch : read.watch.slice(0, 2)).map((item) => {
                   const open = watchOpen === item.key;
@@ -524,7 +525,7 @@ function PhaseTabs({
           type="button"
           onClick={() => onRound(n)}
           className={cn(
-            "min-h-11 rounded-full px-3.5 text-sm",
+            "h-10 rounded-full px-3.5 text-sm",
             round === n
               ? "bg-card text-foreground shadow-[var(--shadow-border)]"
               : "text-muted-foreground",

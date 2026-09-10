@@ -14,6 +14,7 @@ Targeted patch only. After edits: `node scripts/guard-e7-core.mjs`.
 ## Do not do
 
 - Do not add an `ArchetypeId`. Eight wall types is the ceiling.
+- Do not put an unverified id on `prefer`, `SAMPLE_ROSTER`, or `STARTER_ROSTER`. `npm run check:e7` fails.
 - Do not add a new seed recipe unless this kit is a **different plan**
   (cleave vs injury vs anti-revive). Unique spice is a Watch, not a recipe.
 - Do not dump every unique onto Watch. Only if it **changes how you play**.

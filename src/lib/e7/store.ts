@@ -28,6 +28,7 @@ type ArenaState = {
   setGwSlot: (round: 1 | 2, index: number, id: string | null) => void;
   setEnemySlot: (index: number, id: string | null) => void;
   setEnemy: (ids: string[]) => void;
+  clearWall: () => void;
   setLastTeam: (ids: string[]) => void;
   toggleBuilt: (id: string) => void;
   loadPresetRoster: (kind: "challenger" | "starter" | "clear") => void;
@@ -188,6 +189,18 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
       const enemyArena = pad(ids, 4);
       set({ enemyArena, enemy: enemyArena });
     }
+    persistState();
+  },
+  clearWall: () => {
+    const emptyA = emptyArena();
+    const emptyG = emptyGw();
+    const mode = get().scoutMode;
+    set({
+      enemyArena: emptyA,
+      enemyGw: emptyG,
+      enemyGw2: emptyG,
+      enemy: mode === "gw" ? emptyG : emptyA,
+    });
     persistState();
   },
   setLastTeam: (ids) => {

@@ -1,5 +1,15 @@
 import { useMemo, useState } from "react";
 import { HeroPortrait } from "@/components/hero-portrait";
+import {
+  FilterChip,
+  LetterHead,
+  LIST,
+  PAGE,
+  PageHeader,
+  RowCard,
+  StatStrip,
+  TOOLBAR,
+} from "@/components/e7/chrome";
 import { JumpRail, groupByLetter } from "@/components/e7/jump-rail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,58 +49,33 @@ export function RosterView() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <header className="rise-in flex flex-col gap-1">
-        <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-          Roster
-        </p>
-        <h1 className="font-display text-2xl leading-[1.15] tracking-tight sm:text-3xl">
-          Your roster
-        </h1>
-        <p className="max-w-lg text-sm text-muted-foreground">
-          Tap to mark built. That is a note of what you have — Scout does not require it.
-          Turn on Only built units there if you want lineups from this list.
-        </p>
-      </header>
+    <div className={PAGE}>
+      <PageHeader kicker="Roster" title="Your roster">
+        Tap to mark built. Scout only uses this list if Only built units is on.
+      </PageHeader>
 
-      <div className="grid grid-cols-4 border-y border-border/80 py-3">
-        {(
-          [
-            ["Built", String(built.length)],
-            ["Ready", String(builtVerified)],
-            ["Verified", String(verifiedN)],
-            ["Pending", String(heroes.length - verifiedN)],
-          ] as const
-        ).map(([label, value], i) => (
-          <div
-            key={label}
-            className={cn("px-3 first:pl-0 last:pr-0", i > 0 && "border-l border-border/80")}
-          >
-            <p className="text-[10px] tracking-[0.16em] text-muted-foreground uppercase">{label}</p>
-            <p className="mt-0.5 font-mono text-xl tabular-nums leading-none">{value}</p>
-          </div>
-        ))}
-      </div>
+      <StatStrip
+        items={[
+          { label: "Built", value: String(built.length) },
+          { label: "Ready", value: String(builtVerified) },
+          { label: "Verified", value: String(verifiedN) },
+          { label: "Pending", value: String(heroes.length - verifiedN) },
+        ]}
+      />
 
       <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className={TOOLBAR}>
           {confirmClear ? (
             <>
               <p className="w-full text-sm text-muted-foreground">
                 Clear all built marks? This cannot be undone.
               </p>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 px-2.5 text-xs"
-                onClick={() => setConfirmClear(false)}
-              >
+              <Button size="sm" variant="ghost" onClick={() => setConfirmClear(false)}>
                 Cancel
               </Button>
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-8 px-2.5 text-xs"
                 onClick={() => {
                   loadPresetRoster("clear");
                   setConfirmClear(false);
@@ -101,15 +86,19 @@ export function RosterView() {
             </>
           ) : (
             <>
-              <Button size="sm" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => loadPresetRoster("challenger")}>
+              <FilterChip on={false} onClick={() => loadPresetRoster("challenger")}>
                 Full kit
-              </Button>
-              <Button size="sm" variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => loadPresetRoster("starter")}>
+              </FilterChip>
+              <FilterChip on={false} onClick={() => loadPresetRoster("starter")}>
                 Starter
-              </Button>
-              <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => setConfirmClear(true)}>
+              </FilterChip>
+              <button
+                type="button"
+                className="h-10 px-3 text-sm text-muted-foreground"
+                onClick={() => setConfirmClear(true)}
+              >
                 Clear
-              </Button>
+              </button>
             </>
           )}
         </div>
@@ -117,12 +106,11 @@ export function RosterView() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search heroes…"
-          className="h-10"
         />
-        <div className="flex flex-wrap gap-1.5">
-          <ToggleChip on={onlyBuilt} onClick={() => setOnlyBuilt((v) => !v)}>
+        <div className={TOOLBAR}>
+          <FilterChip on={onlyBuilt} onClick={() => setOnlyBuilt((v) => !v)}>
             Built only
-          </ToggleChip>
+          </FilterChip>
           {(
             [
               ["all", "All"],
@@ -130,23 +118,18 @@ export function RosterView() {
               ["pending", "Pending"],
             ] as const
           ).map(([id, label]) => (
-            <ToggleChip key={id} on={kit === id} onClick={() => setKit(id)}>
+            <FilterChip key={id} on={kit === id} onClick={() => setKit(id)}>
               {label}
-            </ToggleChip>
+            </FilterChip>
           ))}
         </div>
       </div>
 
-      <ul className="flex flex-col gap-1">
+      <ul className={LIST}>
         {groups.map((group) => (
           <li key={group.letter} className="flex flex-col gap-1">
-            <p
-              id={`az-${group.letter}`}
-              className="scroll-mt-3 px-1 pt-3 pb-1 text-xs font-medium tracking-[0.18em] text-muted-foreground"
-            >
-              {group.letter}
-            </p>
-            <ul className="flex flex-col gap-1">
+            <LetterHead letter={group.letter} />
+            <ul className={LIST}>
               {group.rows.map((hero) => {
                 const builtOn = Boolean(roster[hero.id]?.built);
                 const checked = daysAgoLabel(hero.checkedAt);
@@ -156,28 +139,30 @@ export function RosterView() {
                       type="button"
                       onClick={() => toggleBuilt(hero.id)}
                       aria-pressed={builtOn}
-                      className="grid min-h-14 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl bg-card px-3 py-2.5 text-left shadow-[var(--shadow-border)]"
+                      className="w-full text-left [-webkit-tap-highlight-color:transparent]"
                     >
-                      <HeroPortrait hero={hero} size="sm" dimmed={!builtOn} />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium">{hero.name}</span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]}
-                          {hero.verified
-                            ? ` · in-game verified${checked ? ` ${checked}` : ""}`
-                            : " · kit pending"}
+                      <RowCard>
+                        <HeroPortrait hero={hero} size="sm" dimmed={!builtOn} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{hero.name}</span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]}
+                            {hero.verified
+                              ? ` · verified${checked ? ` ${checked}` : ""}`
+                              : " · pending"}
+                          </span>
                         </span>
-                      </span>
-                      <span
-                        className={cn(
-                          "inline-flex h-11 min-w-24 items-center justify-center rounded-full px-3 text-xs font-medium tracking-wide uppercase",
-                          builtOn
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-muted-foreground",
-                        )}
-                      >
-                        {builtOn ? "Built" : "Not built"}
-                      </span>
+                        <span
+                          className={cn(
+                            "inline-flex h-9 min-w-[5.75rem] items-center justify-center rounded-full px-3 text-xs font-medium tracking-wide uppercase",
+                            builtOn
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary text-muted-foreground",
+                          )}
+                        >
+                          {builtOn ? "Built" : "Not built"}
+                        </span>
+                      </RowCard>
                     </button>
                   </li>
                 );
@@ -188,28 +173,5 @@ export function RosterView() {
       </ul>
       {jumpItems.length > 1 ? <JumpRail items={jumpItems} /> : null}
     </div>
-  );
-}
-
-function ToggleChip({
-  on,
-  onClick,
-  children,
-}: {
-  on: boolean;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "h-8 shrink-0 rounded-md px-2.5 text-xs shadow-[var(--shadow-border)]",
-        on ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
-      )}
-    >
-      {children}
-    </button>
   );
 }

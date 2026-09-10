@@ -1,9 +1,9 @@
 import { r as __exportAll$1 } from "../_runtime.mjs";
-import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
+import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { A as _getRenderedMatches, B as rootRouteId, D as getStylesheetHref, E as getScriptPreloadAttrs, I as isRedirect, L as isResolvedRedirect, M as invariant, O as resolveManifestAssetLink, R as parseRedirect, V as isNotFound, a as isSsrResponse, c as stripSsrResponseBody, f as RouterProvider, i as disposeSsrResponseDetached, j as executeRewriteInput, k as resolveManifestCssLink, n as bindSsrResponseToRequest, o as normalizeSsrResponse, r as defineHandlerCallback, s as replaceSsrResponse, t as renderRouterToStream } from "../_libs/@tanstack/react-router+[...].mjs";
 import { n as createMemoryHistory } from "../_libs/tanstack__history.mjs";
 import { a as getOrigin, c as createSerializationAdapter, d as toCrossJSONAsync, f as toCrossJSONStream, i as getNormalizedURL, l as makeSerovalPlugin, n as mergeHeaders, o as defaultSerovalPlugins, r as attachRouterServerSsrUtils, s as createRawStreamRPCPlugin, t as waitForRequest, u as fromJSON } from "../_libs/@tanstack/router-core+[...].mjs";
-import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
+import { m as require_jsx_runtime } from "../_libs/@radix-ui/react-checkbox+[...].mjs";
 import { n as setCookie, r as toResponse, t as H3Event } from "../_libs/h3-v2+rou3.mjs";
 import { AsyncLocalStorage } from "node:async_hooks";
 //#region node_modules/.nitro/vite/services/ssr/index.js
@@ -118,7 +118,7 @@ var HEADERS = { TSS_SHELL: "X-TSS_SHELL" };
 * the dev styles URL for route-scoped CSS collection.
 */
 async function getStartManifest(matchedRoutes) {
-	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-Btah4zkY.mjs");
+	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-CW8zJEZK.mjs");
 	const startManifest = tsrStartManifest();
 	let routes = startManifest.routes;
 	routes[rootRouteId];
@@ -140,59 +140,91 @@ async function getStartManifest(matchedRoutes) {
 var manifest = {
 	"00386725c51991701de8cb3611d9e9c9b526d105bcbf16426289d870804da06a": {
 		functionName: "listMembers_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"149a27cb7d5cb563daced54b825f7aaa15db2da63e658d45111f3f9289a22ad6": {
 		functionName: "removeMatch_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
+	},
+	"149cb06951083cb0b905d0eee872b12b60d57a77458141d45b8909a1622d28dd": {
+		functionName: "listAdminLog_createServerFn_handler",
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"189d9659d3410c803d115de7444e184bedf81a9dd55aa6f5ca07637e001f4441": {
 		functionName: "deleteRecipe_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
+	},
+	"2825a6eed1691f774d9843cdd385fcec9f6b3d00de7bd9f9e18f9c0c11395204": {
+		functionName: "deleteStrategyIdea_createServerFn_handler",
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"41ec4eb545d8a4963763581e265a1f4424b9dcf0426e00bfef088ea9830885b4": {
 		functionName: "clearMatches_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"58fadfe80d8abe2ab711d6b70c8d1eccfc01489e4e8bfbb0a83103780abe7435": {
 		functionName: "savePreset_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
+	},
+	"77c61eb14712b1ad26551bc85d18e5b4b37577529e3637bb1371c61878acb900": {
+		functionName: "setIngameName_createServerFn_handler",
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"88bf1be12c130000e4bee1e58c5e5c2fb3d8b99a7faa14046df6a49b7944930b": {
 		functionName: "deleteHero_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"92856220f1d5d98893da5278af82961dec1ac2c6512aefe35b22ea147916f1d7": {
 		functionName: "saveMatch_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
+	},
+	"97fa751e9662ce17e0bffb048db8ffc73c0468d4d96bf2b53ca2b21b81200524": {
+		functionName: "listStrategyIdeas_createServerFn_handler",
+		importer: () => import("./api-B7c-Cm6v.mjs")
+	},
+	"a8fd051dbaedf4960e62fa90ba783f9a0200865da2500df441c6f5188e2f09ac": {
+		functionName: "getAnalytics_createServerFn_handler",
+		importer: () => import("./api-B7c-Cm6v.mjs")
+	},
+	"abce8a879533e6a74d7931828c1fe63696a63b46fa5a86bbf3eee69710b45ebc": {
+		functionName: "saveStrategyIdea_createServerFn_handler",
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"b5e099a4b29d7250646d46107e9ccdcde1616d46eef205c2a258582b1041a0f5": {
 		functionName: "saveRecipe_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"b78681f0d28822155787f578828bf849369a5e3811a1d5cee7de00e7a79e1fbf": {
 		functionName: "deletePreset_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"b7c6a3f3c0cbd5253e374ffb8a2714fcd1c7b8df44eaa28e36fbd76d29237c05": {
 		functionName: "setMemberRole_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"cb2cdfa13d1a19d9b8e3c7c3c6604579011fb8539ae7e851ee51df95594907f6": {
 		functionName: "saveHero_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
+	},
+	"cc674b6b9a4cfb55802b3f3247a3cbe0944ecb418cd8c826514b3ee7a12aa3c7": {
+		functionName: "saveHeroIcon_createServerFn_handler",
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"dcceba28ba76902cfe6dd91dfc4e7087ff72c9db1abd543bda0155a7ef9b7783": {
 		functionName: "saveArena_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"f683033da44518010a90e4abc7865c65a2b5c8135c63f2d2ebf0345bc15180e3": {
 		functionName: "getCatalog_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
+	},
+	"fc1699d567f7fbc62206b31e62155f72c5ab9b9c8d18e13e79b6a240e1c1e48e": {
+		functionName: "setStrategyIdeaStatus_createServerFn_handler",
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	},
 	"fe4b0688430b503c34f0b773c38bdb079a7af969460739e360a85cd53dd02716": {
 		functionName: "getArena_createServerFn_handler",
-		importer: () => import("./api-BC4o4djq.mjs")
+		importer: () => import("./api-B7c-Cm6v.mjs")
 	}
 };
 async function getServerFnById(id, access) {
@@ -1462,7 +1494,7 @@ var getBaseManifest = getProdBaseManifest;
 var createEarlyHintsForRequest = createEarlyHintsCollector;
 async function loadEntries() {
 	const [routerEntry, startEntry, pluginAdapters] = await Promise.all([
-		import("./router-CaxQZeMY.mjs").then((n) => n.t),
+		import("./router-DrPSiwCO.mjs").then((n) => n.t),
 		import("./start-5Z2QO8AU.mjs"),
 		import("./empty-plugin-adapters-D9UWiqvJ.mjs")
 	]);

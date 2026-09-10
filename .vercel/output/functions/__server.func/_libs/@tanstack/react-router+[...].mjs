@@ -1,8 +1,7 @@
 import { i as __require, o as __toESM, t as __commonJSMin } from "../../_runtime.mjs";
-import { n as require_react } from "../@radix-ui/react-compose-refs+[...].mjs";
+import { l as require_react_dom, u as require_react } from "../@floating-ui/react-dom+[...].mjs";
 import { r as parseHref } from "../tanstack__history.mjs";
-import { n as require_jsx_runtime } from "../radix-ui__react-context+react.mjs";
-import { h as require_react_dom } from "../@radix-ui/react-dialog+[...].mjs";
+import { m as require_jsx_runtime } from "../@radix-ui/react-checkbox+[...].mjs";
 import { PassThrough, Readable } from "node:stream";
 import { ReadableStream as ReadableStream$1 } from "node:stream/web";
 //#region node_modules/@tanstack/router-core/dist/esm/not-found.js

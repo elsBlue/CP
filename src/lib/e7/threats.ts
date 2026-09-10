@@ -96,7 +96,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "revive",
       label: "Revive / reset",
-      note: "A kill can reset. The fight is not over on the first death.",
+      note: "Killing one unit is not enough. They can come back.",
       answerTags: ["anti-revive"],
       answerEffects: ["extinction"],
     });
@@ -105,7 +105,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "reversal",
       label: "Time Reversal",
-      note: "Health and state roll back after the first cycle.",
+      note: "After the first round of turns, HP and buffs go back to how the fight started.",
     });
   }
   if (
@@ -141,7 +141,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "injury",
       label: "Injury",
-      note: "They cut maximum Health as the fight goes on. Healing cannot restore that part.",
+      note: "They shrink the HP bar. Healing cannot fill the missing part.",
     });
   }
   if (
@@ -520,7 +520,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "a-tywin",
       label: "A.Tywin",
-      note: "Stuns everyone. Removes souls. Does not remove buffs.",
+      note: "Stuns everyone and empties souls. Buffs stay on.",
     });
   }
   if (
@@ -649,7 +649,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "collapse",
       label: "Collapse",
-      note: "Maximum Health is cut in half. Healing cannot restore that part.",
+      note: "The HP bar is cut in half. Healing cannot fill the missing part.",
     });
   }
   if (hasUnique(heroes, "clone") || ids.has("salome")) {
@@ -664,7 +664,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "a-yufine",
       label: "A.Yufine",
-      note: "Removes buffs from everyone and pulls Combat Readiness back halfway. That cannot be resisted. When you raise Combat Readiness, 30% of that increase is lost. 30% chance to counter when hit. Trauma is on herself.",
+      note: "Strips everyone and pulls their turn bar down halfway. Always lands. When you push your own bar, a third of that push is lost.",
     });
   }
   if (hasUnique(heroes, "bind") || ids.has("rhianna-and-luciella")) {
@@ -902,7 +902,7 @@ export function wallThreats(heroes: Hero[]): DraftThreat[] {
     add({
       key: "abigail",
       label: "Abigail save",
-      note: "Blood Banquet spends her Health to grant Immortality to the back row when they would die. Curse on the highest Attack also reflects part of your damage onto that unit.",
+      note: "When a back-row ally would die, she spends her own HP to keep them alive for that hit.",
     });
   }
   if (ids.has("ae-ningning") || hasUnique(heroes, "system hacking")) {

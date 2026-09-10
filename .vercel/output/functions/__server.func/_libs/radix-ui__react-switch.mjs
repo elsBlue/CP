@@ -1,9 +1,7 @@
 import { o as __toESM } from "../_runtime.mjs";
-import { n as require_react, t as useComposedRefs } from "./@radix-ui/react-compose-refs+[...].mjs";
-import { n as require_jsx_runtime, t as createContextScope } from "./radix-ui__react-context+react.mjs";
-import { c as useControllableState, f as Primitive } from "./@radix-ui/react-dialog+[...].mjs";
+import { u as require_react } from "./@floating-ui/react-dom+[...].mjs";
+import { a as useSize, l as createContextScope, m as require_jsx_runtime, p as useComposedRefs, r as useControllableState, s as Primitive } from "./@radix-ui/react-checkbox+[...].mjs";
 import { t as composeEventHandlers } from "./radix-ui__primitive.mjs";
-import { n as useSize } from "./@radix-ui/react-popper+[...].mjs";
 //#region node_modules/@radix-ui/react-switch/dist/index.mjs
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_jsx_runtime = require_jsx_runtime();

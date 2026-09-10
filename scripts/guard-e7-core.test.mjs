@@ -4,12 +4,16 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkE7Core, FLOORS } from "./guard-e7-core.mjs";
+import { checkCatalogHygiene, checkE7Core, FLOORS } from "./guard-e7-core.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 test("live Crownpath core files pass the truncation guard", () => {
   assert.deepEqual(checkE7Core(ROOT), []);
+});
+
+test("live prefer lists and roster presets are in-game verified", () => {
+  assert.deepEqual(checkCatalogHygiene(ROOT), []);
 });
 
 test("a wiped engine.ts fails the floor", () => {

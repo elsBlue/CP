@@ -1,0 +1,122 @@
+{
+  "app": "crownpath",
+  "v": 1,
+  "kind": "analytics",
+  "exportedAt": "2026-09-01T13:55:00.541Z",
+  "walls": [
+    {
+      "archetype": "speed-cleave",
+      "title": "Speed cleave",
+      "wins": 0,
+      "losses": 0
+    },
+    {
+      "archetype": "harsetti-stall",
+      "title": "Harsetti stall",
+      "wins": 0,
+      "losses": 1
+    },
+    {
+      "archetype": "revive-wall",
+      "title": "Revive wall",
+      "wins": 0,
+      "losses": 0
+    },
+    {
+      "archetype": "injury-grind",
+      "title": "Injury grind",
+      "wins": 0,
+      "losses": 0
+    },
+    {
+      "archetype": "evasion-counter",
+      "title": "Evasion nest",
+      "wins": 0,
+      "losses": 0
+    },
+    {
+      "archetype": "turn2-control",
+      "title": "Turn-2 control",
+      "wins": 0,
+      "losses": 1
+    },
+    {
+      "archetype": "immunity-soul",
+      "title": "Immunity / soul lock",
+      "wins": 0,
+      "losses": 0
+    },
+    {
+      "archetype": "bruiser-mix",
+      "title": "Mixed bruiser",
+      "wins": 0,
+      "losses": 0
+    }
+  ],
+  "recipes": [
+    {
+      "id": "injury-vs-stall",
+      "name": "Injury grind",
+      "author": "Catalog",
+      "source": "seed",
+      "wins": 0,
+      "losses": 1
+    },
+    {
+      "id": "strip-control",
+      "name": "Strip and lock",
+      "author": "Catalog",
+      "source": "seed",
+      "wins": 0,
+      "losses": 1
+    },
+    {
+      "id": "anti-revive-burst",
+      "name": "Anti-revive cut",
+      "author": "Catalog",
+      "source": "seed",
+      "wins": 0,
+      "losses": 0
+    },
+    {
+      "id": "evasion-bait",
+      "name": "Evasion bait",
+      "author": "Catalog",
+      "source": "seed",
+      "wins": 0,
+      "losses": 0
+    },
+    {
+      "id": "harsetti-answer",
+      "name": "Speed cap",
+      "author": "Catalog",
+      "source": "seed",
+      "wins": 0,
+      "losses": 0
+    },
+    {
+      "id": "outspeed-cleave",
+      "name": "Strip cleave",
+      "author": "Catalog",
+      "source": "seed",
+      "wins": 0,
+      "losses": 0
+    },
+    {
+      "id": "anti-evasion",
+      "name": "True hit",
+      "author": "Catalog",
+      "source": "seed",
+      "wins": 0,
+      "losses": 0
+    },
+    {
+      "id": "turn2-control",
+      "name": "Turn-2 script",
+      "author": "Catalog",
+      "source": "seed",
+      "wins": 0,
+      "losses": 0
+    }
+  ]
+}

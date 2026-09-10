@@ -330,7 +330,7 @@ function fillRecipe(
   const enemy = new Set(enemyIds);
   const picks: { label: string; hero: Hero }[] = [];
   const missing: string[] = [];
-  const wallHeroes = heroesOf(enemyIds);
+  const wallHeroes = heroesOf(enemyIds).filter((h) => h.verified);
   const offering = wallHeroes.some((h) =>
     (h.uniqueEffects ?? []).some((u) =>
       /offering|scales of equity/i.test(u.name),
@@ -1564,12 +1564,13 @@ export function recommendCounters(
     if (recipe.id === "anti-revive-burst" && !reviveThreat) continue;
     const filled = fillRecipe(recipe, usable, enemyIds, seats);
     if (filled.heroIds.length < 3) continue;
+    const wallHeroes = heroesOf(enemyIds).filter((h) => h.verified);
     const filledHeroes = filled.picks.map((p) => p.hero);
-    const wallOpeners = heroesOf(enemyIds).filter(isFirstCycleOpener);
+    const wallOpeners = wallHeroes.filter(isFirstCycleOpener);
     const theirFast = Math.max(0, ...wallOpeners.map((h) => h.baseSpeed ?? 0));
     const ourFast = Math.max(0, ...filledHeroes.map((h) => h.baseSpeed ?? 0));
     const gap = theirFast > 0 ? theirFast - ourFast : 0;
-    const cannotMiss = heroesOf(enemyIds).some(hitsEvenOnMiss);
+    const cannotMiss = wallHeroes.some(hitsEvenOnMiss);
     if (cannotMiss && recipe.id === "evasion-bait") continue;
     const race =
       recipe.id === "outspeed-cleave" ||

@@ -1,0 +1,75 @@
+{
+  "app": "crownpath",
+  "v": 1,
+  "exportedAt": "2026-09-01T13:57:00.224Z",
+  "vp": 800,
+  "record": "0W 2L",
+  "built": 17,
+  "restrictToRoster": true,
+  "byWall": [
+    {
+      "wall": "Turn-2 control",
+      "w": 0,
+      "l": 1
+    },
+    {
+      "wall": "Harsetti stall",
+      "w": 0,
+      "l": 1
+    }
+  ],
+  "byRecipe": [
+    {
+      "name": "Strip and lock",
+      "w": 0,
+      "l": 1
+    },
+    {
+      "name": "Injury grind",
+      "w": 0,
+      "l": 1
+    }
+  ],
+  "fights": [
+    {
+      "at": "2026-09-01T13:47:55.250Z",
+      "result": "L",
+      "vp": -18,
+      "wall": "Turn-2 control",
+      "recipe": "Strip and lock",
+      "enemy": [
+        "G.Ras",
+        "Frieren",
+        "Scales",
+        "Rinak"
+      ],
+      "team": [
+        "Setsuka",
+        "ADS",
+        "ML Hwayoung",
+        "Ruele"
+      ],
+      "note": ""
+    },
+    {
+      "at": "2026-09-01T13:35:55.759Z",
+      "result": "L",
+      "vp": -18,
+      "wall": "Harsetti stall",
+      "recipe": "Injury grind",
+      "enemy": [
+        "B.Arunka",
+        "F.Cecilia",
+        "E.Ilynav",
+        "Harsetti"
+      ],
+      "team": [
+        "MS Iseria",
+        "LR Krau",
+        "Belian",
+        "Ruele"
+      ],
+      "note": ""
+    }
+  ]
+}
