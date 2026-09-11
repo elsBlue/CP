@@ -148,7 +148,7 @@ function HeroAdmin() {
   );
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn("flex flex-col gap-5", jumpItems.length > 1 && "pr-8 xl:pr-0")}>
       <StatStrip
         items={[
           { label: "Units", value: String(heroes.length) },
@@ -245,7 +245,7 @@ function HeroAdmin() {
                           {ELEMENT_LABEL[hero.element]} {CLASS_LABEL[hero.class]} · {heroRarity(hero)}★
                         </p>
                       </div>
-                      <Button size="sm" variant="secondary" onClick={() => setEditing(hero)}>
+                      <Button variant="secondary" onClick={() => setEditing(hero)}>
                         Edit
                       </Button>
                     </RowCard>

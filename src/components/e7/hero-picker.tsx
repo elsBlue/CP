@@ -37,7 +37,9 @@ export function HeroPicker({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [multi, setMulti] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
-  const [wide, setWide] = useState(false);
+  const [wide, setWide] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches,
+  );
   const [includePending, setIncludePending] = useState(false);
   const heroes = useCatalog((s) => s.heroes);
   const poolHeroes = useMemo(
@@ -117,10 +119,7 @@ export function HeroPicker({
         onOpenChange(v);
       }}
     >
-      <SheetContent
-        side={wide ? "right" : "bottom"}
-        className={cn("gap-0", !wide && "h-[92dvh] max-h-[92dvh]")}
-      >
+      <SheetContent side={wide ? "right" : "bottom"} className="gap-0">
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>

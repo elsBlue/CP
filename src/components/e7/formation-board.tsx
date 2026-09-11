@@ -209,7 +209,7 @@ function Cell({
             e.stopPropagation();
             onClear();
           }}
-          className="absolute z-20 flex size-5 items-center justify-center rounded-full bg-secondary text-[11px] leading-none text-muted-foreground hover:text-foreground"
+          className="absolute z-20 flex size-5 items-center justify-center rounded-full bg-secondary text-[11px] leading-none text-muted-foreground after:absolute after:inset-[-12px] after:content-[''] hover:text-foreground"
           style={outerVertex(area, sizePx)}
           aria-label={`Clear ${hero.name}`}
         >

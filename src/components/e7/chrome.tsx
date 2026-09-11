@@ -42,7 +42,7 @@ export function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-10 shrink-0 items-center rounded-full px-3.5 text-sm",
+        "inline-flex h-11 shrink-0 items-center rounded-full px-3.5 text-sm",
         on ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
       )}
     >
@@ -60,10 +60,10 @@ export function StatStrip({ items }: { items: { label: string; value: string }[]
       {items.map((item, i) => (
         <div
           key={item.label}
-          className={cn("px-3 first:pl-0 last:pr-0", i > 0 && "border-l border-border/80")}
+          className={cn("px-2 first:pl-0 last:pr-0 sm:px-3", i > 0 && "border-l border-border/80")}
         >
-          <p className="text-[10px] tracking-[0.16em] text-muted-foreground uppercase">{item.label}</p>
-          <p className="mt-0.5 font-mono text-xl tabular-nums leading-none">{item.value}</p>
+          <p className="truncate text-[10px] tracking-[0.14em] text-muted-foreground uppercase sm:tracking-[0.16em]">{item.label}</p>
+          <p className="mt-0.5 font-mono text-lg tabular-nums leading-none sm:text-xl">{item.value}</p>
         </div>
       ))}
     </div>

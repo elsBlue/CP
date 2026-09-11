@@ -121,14 +121,15 @@ export function JumpRail({
   return (
     <nav
       aria-label="On this page"
-      aria-hidden={!shown}
-      className="pointer-events-none fixed top-20 right-0 bottom-20 z-30 flex justify-end md:hidden"
+      className="pointer-events-none fixed top-20 right-0 bottom-20 z-30 flex justify-end md:bottom-8"
     >
       <div
         className={cn(
-          "scout-rail pointer-events-auto flex items-stretch gap-2 py-2 pr-2 pl-5 transition-[opacity,transform] duration-300 ease-[var(--ease-smooth-out)] motion-reduce:transition-none",
+          "scout-rail pointer-events-auto flex items-stretch gap-2 py-2 pr-[max(0.5rem,env(safe-area-inset-right))] pl-5 transition-[opacity,transform] duration-300 ease-[var(--ease-smooth-out)] motion-reduce:transition-none",
           compact ? "h-full" : "my-auto",
-          shown ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-2 opacity-0",
+          shown
+            ? "translate-x-0 opacity-100"
+            : "pointer-events-none translate-x-2 opacity-0 md:pointer-events-auto md:translate-x-0 md:opacity-100",
         )}
         onPointerDown={() => {
           hold.current = true;

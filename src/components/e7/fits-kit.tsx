@@ -13,54 +13,60 @@ import { cn } from "@/lib/utils";
 export function FitsKit({ hero }: { hero: Hero }) {
   const loadout = fitKit(hero);
   return (
-    <section className="flex flex-col gap-4">
+    <section className="@container flex flex-col gap-4">
       <div>
         <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Fits this kit</p>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{LOADOUT_DISCLAIMER}</p>
       </div>
 
-      <LayoutBlock title="Sets" layout={loadout.primary} />
-      <LayoutBlock title="Alt" layout={loadout.alt} muted />
+      <div className="flex flex-col gap-4 @min-[32rem]:grid @min-[32rem]:grid-cols-2 @min-[32rem]:items-start @min-[32rem]:gap-8">
+        <div className="flex flex-col gap-4">
+          <LayoutBlock title="Sets" layout={loadout.primary} />
+          <LayoutBlock title="Alt" layout={loadout.alt} muted />
+        </div>
 
-      <div className="border-t border-border/80 pt-3">
-        <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Artifact</p>
-        <ul className="mt-2 flex flex-col gap-2">
-          {loadout.artifacts.map((art) => (
-            <li key={art.id}>
-              <p className="text-sm">{art.name}</p>
-              <p className="text-xs leading-relaxed text-muted-foreground">{art.note}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
+        <div className="flex flex-col gap-4">
+          <div className="border-t border-border/80 pt-3 @min-[32rem]:border-t-0 @min-[32rem]:pt-0">
+            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Artifact</p>
+            <ul className="mt-2 flex flex-col gap-2">
+              {loadout.artifacts.map((art) => (
+                <li key={art.id}>
+                  <p className="text-sm">{art.name}</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">{art.note}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-      <div className="border-t border-border/80 pt-3">
-        <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Exclusive equipment</p>
-        {loadout.ee ? (
-          <div className="mt-2">
-            <p className="text-sm">{loadout.ee.name}</p>
-            {loadout.ee.options.length ? (
-              <ul className="mt-2 flex flex-col gap-2">
-                {loadout.ee.options.map((opt, i) => {
-                  const play = optionChangesPlay(opt.effect);
-                  return (
-                    <li key={`${opt.skill}-${i}`} className="text-xs leading-relaxed">
-                      <span className="text-foreground">{opt.skill}</span>
-                      {play ? (
-                        <span className="text-muted-foreground"> · changes the skill</span>
-                      ) : null}
-                      <span className="mt-0.5 block text-muted-foreground">{opt.effect}</span>
-                    </li>
-                  );
-                })}
-              </ul>
+          <div className="border-t border-border/80 pt-3">
+            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Exclusive equipment</p>
+            {loadout.ee ? (
+              <div className="mt-2">
+                <p className="text-sm">{loadout.ee.name}</p>
+                {loadout.ee.options.length ? (
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {loadout.ee.options.map((opt, i) => {
+                      const play = optionChangesPlay(opt.effect);
+                      return (
+                        <li key={`${opt.skill}-${i}`} className="text-xs leading-relaxed">
+                          <span className="text-foreground">{opt.skill}</span>
+                          {play ? (
+                            <span className="text-muted-foreground"> · changes the skill</span>
+                          ) : null}
+                          <span className="mt-0.5 block text-muted-foreground">{opt.effect}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">No clean option text on file.</p>
+                )}
+              </div>
             ) : (
-              <p className="mt-1 text-xs text-muted-foreground">No clean option text on file.</p>
+              <p className="mt-2 text-xs text-muted-foreground">No exclusive equipment on this unit.</p>
             )}
           </div>
-        ) : (
-          <p className="mt-2 text-xs text-muted-foreground">No exclusive equipment on this unit.</p>
-        )}
+        </div>
       </div>
     </section>
   );
@@ -88,7 +94,7 @@ function LayoutBlock({
             key={`${piece.set}-${i}`}
             title={piece.name}
             className={cn(
-              "h-0.5 flex-1",
+              "h-1 flex-1 rounded-full",
               i > 0 && piece.set !== pieces[i - 1]?.set ? "ml-1" : "",
               muted ? "bg-border" : "bg-foreground/70",
             )}
@@ -96,8 +102,12 @@ function LayoutBlock({
         ))}
       </div>
       {layout.kind === "4+2" ? (
-        <p className="mt-1 text-xs text-muted-foreground">{GEAR_SETS[layout.four].effect}</p>
-      ) : null}
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{GEAR_SETS[layout.four].effect}</p>
+      ) : (
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          {layout.sets.map((id) => GEAR_SETS[id].name).join(" · ")}
+        </p>
+      )}
     </div>
   );
 }

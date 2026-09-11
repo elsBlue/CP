@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="relative flex h-full max-h-full flex-col overflow-hidden bg-background text-foreground">
       <Starfield />
       <header className="relative z-40 shrink-0 border-b border-border/80 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
           <Link to="/" className="min-w-0">
             <Brand size="sm" />
           </Link>
@@ -59,7 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="app-scroll relative z-10 min-h-0 flex-1 px-4 pt-6 pb-6 md:pt-8 md:pb-16">
+      <main className="app-scroll relative z-10 min-h-0 flex-1 px-4 pt-6 pb-6 sm:px-6 md:pt-8 md:pb-16">
         <div className="mx-auto w-full max-w-5xl">{children}</div>
       </main>
 
@@ -120,7 +120,7 @@ function AccountChip() {
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
-        className="flex max-w-[9.5rem] items-center gap-2 rounded-full bg-secondary py-1 pr-3 pl-1 text-left"
+        className="flex h-11 max-w-[9.5rem] items-center gap-2 rounded-full bg-secondary py-1 pr-3 pl-1 text-left"
       >
         {user.profileImageUrl ? (
           <img src={user.profileImageUrl} alt="" className="size-8 rounded-full object-cover" />

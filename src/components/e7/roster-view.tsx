@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HeroPortrait } from "@/components/hero-portrait";
 import {
   FilterChip,
@@ -14,7 +14,6 @@ import { FitsKit } from "@/components/e7/fits-kit";
 import { JumpRail, groupByLetter } from "@/components/e7/jump-rail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -31,11 +30,25 @@ import { cn, daysAgoLabel } from "@/lib/utils";
 
 type KitFilter = "all" | "verified" | "pending";
 
+function useWide() {
+  const [wide, setWide] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches,
+  );
+  useEffect(() => {
+    const m = window.matchMedia("(min-width: 768px)");
+    const on = () => setWide(m.matches);
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  return wide;
+}
+
 export function RosterView() {
   const roster = useArenaStore((s) => s.roster);
   const toggleBuilt = useArenaStore((s) => s.toggleBuilt);
   const loadPresetRoster = useArenaStore((s) => s.loadPresetRoster);
   const heroes = useCatalog((s) => s.heroes);
+  const wide = useWide();
   const [query, setQuery] = useState("");
   const [onlyBuilt, setOnlyBuilt] = useState(false);
   const [kit, setKit] = useState<KitFilter>("all");
@@ -60,7 +73,7 @@ export function RosterView() {
   );
 
   return (
-    <div className={PAGE}>
+    <div className={cn(PAGE, jumpItems.length > 1 && "pr-8 xl:pr-0")}>
       <PageHeader kicker="Roster" title="Your roster">
         Tap a name for the kit loadout. Built is what Scout uses when Only built units is on.
       </PageHeader>
@@ -105,7 +118,7 @@ export function RosterView() {
               </FilterChip>
               <button
                 type="button"
-                className="h-10 px-3 text-sm text-muted-foreground"
+                className="h-11 px-3 text-sm text-muted-foreground"
                 onClick={() => setConfirmClear(true)}
               >
                 Clear
@@ -187,22 +200,30 @@ export function RosterView() {
       {jumpItems.length > 1 ? <JumpRail items={jumpItems} /> : null}
 
       <Sheet open={Boolean(openHero)} onOpenChange={(open) => !open && setOpenHero(null)}>
-        <SheetContent side="bottom" className="overflow-hidden">
+        <SheetContent side={wide ? "right" : "bottom"}>
           {openHero ? (
             <>
               <SheetHeader>
-                <SheetTitle>{openHero.name}</SheetTitle>
-                <SheetDescription>
-                  {ELEMENT_LABEL[openHero.element]} {CLASS_LABEL[openHero.class]}
-                  {openHero.verified ? " · verified" : " · pending"}
-                </SheetDescription>
+                <div className="flex items-start gap-3">
+                  <HeroPortrait hero={openHero} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <SheetTitle>{openHero.name}</SheetTitle>
+                    <SheetDescription>
+                      {ELEMENT_LABEL[openHero.element]} {CLASS_LABEL[openHero.class]}
+                      {openHero.verified ? " · verified" : " · pending"}
+                    </SheetDescription>
+                  </div>
+                </div>
               </SheetHeader>
-              <ScrollArea className="min-h-0 flex-1 px-5 pb-8">
-                {openHero.kit ? (
-                  <p className="mb-5 text-sm leading-relaxed text-muted-foreground">{openHero.kit}</p>
-                ) : null}
+              <div className="app-scroll min-h-0 flex-1 px-5 pb-16">
                 <FitsKit hero={openHero} />
-              </ScrollArea>
+                {openHero.kit ? (
+                  <div className="mt-6 border-t border-border/80 pt-4">
+                    <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Kit</p>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{openHero.kit}</p>
+                  </div>
+                ) : null}
+              </div>
             </>
           ) : null}
         </SheetContent>

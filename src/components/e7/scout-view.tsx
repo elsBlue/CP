@@ -88,7 +88,7 @@ export function ScoutView() {
   );
 
   return (
-    <div className="flex flex-col gap-5 xl:gap-8">
+    <div className={cn("flex flex-col gap-5 xl:gap-8", filled.length > 0 && "pr-8 xl:pr-0")}>
       <div className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
@@ -106,7 +106,7 @@ export function ScoutView() {
                 type="button"
                 onClick={() => setScoutMode(id)}
                 className={cn(
-                  "h-10 rounded-full px-3.5 text-sm",
+                  "h-11 rounded-full px-3.5 text-sm",
                   scoutMode === id
                     ? "bg-card text-foreground shadow-[var(--shadow-border)]"
                     : "text-muted-foreground",
@@ -150,7 +150,7 @@ export function ScoutView() {
             </div>
           </div>
           {scoutMode === "gw" ? (
-            <div className="grid grid-cols-1 justify-items-center gap-6 md:grid-cols-2 md:gap-8">
+            <div className="grid grid-cols-1 justify-items-center gap-6 lg:grid-cols-2 lg:gap-8">
               {(
                 [
                   [1, enemyGw] as const,
@@ -289,7 +289,7 @@ export function ScoutView() {
             </p>
           ) : null}
           {read && read.watch.length > 0 ? (
-            <div className="mt-1 flex max-w-md flex-col gap-1.5 pr-16 md:pr-0">
+            <div className="mt-1 flex max-w-md flex-col gap-1.5 pr-16 xl:pr-0">
               <ul className="flex flex-col gap-1">
                 {(watchAll ? read.watch : read.watch.slice(0, 2)).map((item) => {
                   const open = watchOpen === item.key;
