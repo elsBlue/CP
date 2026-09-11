@@ -13,6 +13,7 @@ import {
   StatStrip,
   TOOLBAR,
 } from "@/components/e7/chrome";
+import { FitsKit } from "@/components/e7/fits-kit";
 import { JumpRail, groupByLetter } from "@/components/e7/jump-rail";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -627,6 +628,11 @@ function HeroForm({
           <Textarea value={form.kit} onChange={(e) => patch({ kit: e.target.value })} />
         </Field>
       </div>
+      {!isNew && form.id ? (
+        <div className="mt-6 border-t border-border/80 pt-4">
+          <FitsKit hero={form} />
+        </div>
+      ) : null}
       <label className="mt-4 flex items-start gap-3 rounded-xl bg-secondary/60 px-4 py-3">
         <Checkbox
           checked={Boolean(form.verified)}

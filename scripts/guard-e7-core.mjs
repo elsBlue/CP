@@ -108,10 +108,26 @@ export function checkCatalogHygiene(root) {
   return errors;
 }
 
+/** Exclusive equipment keys must be real catalog ids. No leftover dump flags. */
+export function checkLoadoutHygiene(root) {
+  const heroesText = readFileSync(join(root, "src/lib/e7/heroes.ts"), "utf8");
+  const eeText = readFileSync(join(root, "src/lib/e7/exclusive-equipment.ts"), "utf8");
+  const verified = parseVerified(heroesText);
+  const errors = [];
+  const keys = [...eeText.matchAll(/^\s+"([^"]+)": \{/gm)].map((m) => m[1]);
+  if (keys.length < 50) errors.push(`EE_BY_HERO is too small (${keys.length})`);
+  for (const id of keys) {
+    if (!verified.has(id)) errors.push(`EE_BY_HERO: unknown id "${id}"`);
+  }
+  if (/\brecommended\s*:/.test(eeText)) errors.push("exclusive-equipment.ts still has recommended flags");
+  if (eeText.includes("????")) errors.push("exclusive-equipment.ts still has broken option text");
+  return errors;
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const errors = [...checkE7Core(root), ...checkCatalogHygiene(root)];
+  const errors = [...checkE7Core(root), ...checkCatalogHygiene(root), ...checkLoadoutHygiene(root)];
   if (errors.length) {
     console.error("e7 core guard failed:");
     for (const e of errors) console.error("  -", e);

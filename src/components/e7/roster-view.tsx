@@ -10,13 +10,23 @@ import {
   StatStrip,
   TOOLBAR,
 } from "@/components/e7/chrome";
+import { FitsKit } from "@/components/e7/fits-kit";
 import { JumpRail, groupByLetter } from "@/components/e7/jump-rail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { searchHeroes } from "@/lib/e7/engine";
 import { CLASS_LABEL, ELEMENT_LABEL } from "@/lib/e7/heroes";
 import { useCatalog } from "@/lib/e7/catalog";
 import { builtIds, useArenaStore } from "@/lib/e7/store";
+import type { Hero } from "@/lib/e7/types";
 import { cn, daysAgoLabel } from "@/lib/utils";
 
 type KitFilter = "all" | "verified" | "pending";
@@ -30,6 +40,7 @@ export function RosterView() {
   const [onlyBuilt, setOnlyBuilt] = useState(false);
   const [kit, setKit] = useState<KitFilter>("all");
   const [confirmClear, setConfirmClear] = useState(false);
+  const [openHero, setOpenHero] = useState<Hero | null>(null);
 
   const built = builtIds(roster);
   const verifiedN = heroes.filter((h) => h.verified).length;
@@ -51,7 +62,7 @@ export function RosterView() {
   return (
     <div className={PAGE}>
       <PageHeader kicker="Roster" title="Your roster">
-        Tap to mark built. Scout only uses this list if Only built units is on.
+        Tap a name for the kit loadout. Built is what Scout uses when Only built units is on.
       </PageHeader>
 
       <StatStrip
@@ -135,13 +146,12 @@ export function RosterView() {
                 const checked = daysAgoLabel(hero.checkedAt);
                 return (
                   <li key={hero.id}>
-                    <button
-                      type="button"
-                      onClick={() => toggleBuilt(hero.id)}
-                      aria-pressed={builtOn}
-                      className="w-full text-left [-webkit-tap-highlight-color:transparent]"
-                    >
-                      <RowCard>
+                    <RowCard>
+                      <button
+                        type="button"
+                        onClick={() => setOpenHero(hero)}
+                        className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left [-webkit-tap-highlight-color:transparent]"
+                      >
                         <HeroPortrait hero={hero} size="sm" dimmed={!builtOn} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">{hero.name}</span>
@@ -152,18 +162,21 @@ export function RosterView() {
                               : " · pending"}
                           </span>
                         </span>
-                        <span
-                          className={cn(
-                            "inline-flex h-9 min-w-[5.75rem] items-center justify-center rounded-full px-3 text-xs font-medium tracking-wide uppercase",
-                            builtOn
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-muted-foreground",
-                          )}
-                        >
-                          {builtOn ? "Built" : "Not built"}
-                        </span>
-                      </RowCard>
-                    </button>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleBuilt(hero.id)}
+                        aria-pressed={builtOn}
+                        className={cn(
+                          "inline-flex h-11 min-w-[5.75rem] shrink-0 items-center justify-center rounded-full px-3 text-xs font-medium tracking-wide uppercase [-webkit-tap-highlight-color:transparent]",
+                          builtOn
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-muted-foreground",
+                        )}
+                      >
+                        {builtOn ? "Built" : "Not built"}
+                      </button>
+                    </RowCard>
                   </li>
                 );
               })}
@@ -172,6 +185,28 @@ export function RosterView() {
         ))}
       </ul>
       {jumpItems.length > 1 ? <JumpRail items={jumpItems} /> : null}
+
+      <Sheet open={Boolean(openHero)} onOpenChange={(open) => !open && setOpenHero(null)}>
+        <SheetContent side="bottom" className="overflow-hidden">
+          {openHero ? (
+            <>
+              <SheetHeader>
+                <SheetTitle>{openHero.name}</SheetTitle>
+                <SheetDescription>
+                  {ELEMENT_LABEL[openHero.element]} {CLASS_LABEL[openHero.class]}
+                  {openHero.verified ? " · verified" : " · pending"}
+                </SheetDescription>
+              </SheetHeader>
+              <ScrollArea className="min-h-0 flex-1 px-5 pb-8">
+                {openHero.kit ? (
+                  <p className="mb-5 text-sm leading-relaxed text-muted-foreground">{openHero.kit}</p>
+                ) : null}
+                <FitsKit hero={openHero} />
+              </ScrollArea>
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
