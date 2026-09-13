@@ -104,6 +104,7 @@ Known **team-wide** (must drive copy):
 
 - Mort's `counter` tag means he turns counters **off**. Do not treat it as a counter core (Bind, extra-attack into LH Cermia, Mort-clash is already gated on *other* units).
 - B.Iseria jobFor during Sanctuary: do not say “nobody revives” unless the wall actually revives. Do not sell Cursed Thorn strip while Sanctuary is up.
+- Hecate jobFor / why: Death’s Dominion “nobody revives” only if the wall actually revives. Offering-only walls keep ignore-share, not anti-revive.
 
 ### 2. Watch
 
@@ -136,7 +137,7 @@ If both sides of a pair are in the filled team, a Breaks-if (or Setup) line is r
 
 | Pair | What actually happens |
 |---|---|
-| B.Iseria or Hecate + Ruele / Maid Chloe / SN Yulha / A.Vildred / Lisette | Ally revive is off while the curse lives |
+| B.Iseria or Hecate + Ruele / Maid Chloe / SN Yulha / A.Vildred / Lisette / SE Celine / A.Ravi / BM Haste | Ally revive is off while the curse lives |
 | Mort + TE Kayron / Miseria / S.Taeyou / any counter core | Mort turns other counters off |
 | Belian (ours) + a Soulburn wincon | That Soulburn does not exist |
 | B.Iseria (ours) + Ruele as “the reset” | She is heals and Barrier only |

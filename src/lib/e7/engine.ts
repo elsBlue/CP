@@ -84,7 +84,8 @@ export function classifyDefense(ids: string[]): DefenseRead | null {
         h.id === "monarch-of-the-sword-iseria" ||
         h.id === "disciplinary-prefect-aria" ||
         h.id === "death-dealer-ray" ||
-        h.id === "alencia",
+        h.id === "alencia" ||
+        h.id === "abigail",
     ).length;
     const injuryN = trusted.filter(
       (h) =>
@@ -447,7 +448,7 @@ function jobFor(
       }
       return `${n} is the area strip. Soulburn ignores Effect Resistance.`;
     case "hecate":
-      return ctx?.wallRevive || ctx?.sanctuary
+      return ctx?.wallRevive
         ? `${n} is Death's Dominion: nobody revives, and Immortal does not apply. Her third skill ignores damage sharing. That skill starts the first fight on cooldown.`
         : `${n} ignores damage sharing on her third skill. That skill starts the first fight on cooldown; the passive is the point.`;
     case "belian":
@@ -779,11 +780,19 @@ function pitfallsFor(picks: { label: string; hero: Hero }[], read: DefenseRead):
   }
   if (read.roles.includes("revive")) {
     const anti = filled.find((h) => h.tags.includes("anti-revive"));
+    const ourRevive = [
+      "ruele-of-light",
+      "school-nurse-yulha",
+      "maid-chloe",
+      "arbiter-vildred",
+      "lisette",
+      "spirit-eye-celine",
+      "apocalypse-ravi",
+      "blood-moon-haste",
+    ];
     const clashCovered =
       (names.has("briar-witch-iseria") || names.has("hecate")) &&
-      (names.has("ruele-of-light") ||
-        names.has("school-nurse-yulha") ||
-        names.has("maid-chloe"));
+      ourRevive.some((id) => names.has(id));
     if (!clashCovered) {
       push(
         3,
@@ -807,11 +816,36 @@ function pitfallsFor(picks: { label: string; hero: Hero }[], read: DefenseRead):
       "Witch's Curse turns School Nurse Yulha's revive off as well. She is still the per-turn cleanse and heal.",
     );
   }
-  if (names.has("hecate") && (names.has("ruele-of-light") || names.has("school-nurse-yulha") || names.has("maid-chloe"))) {
+  if (names.has("hecate") && (names.has("ruele-of-light") || names.has("school-nurse-yulha") || names.has("maid-chloe") || names.has("lisette") || names.has("arbiter-vildred") || names.has("spirit-eye-celine") || names.has("apocalypse-ravi") || names.has("blood-moon-haste"))) {
     push(4, "Death's Dominion turns your revive off as well while Hecate is alive.");
   }
   if (names.has("briar-witch-iseria") && names.has("maid-chloe")) {
     push(4, "Witch's Curse turns Maid Chloe's revive off. VIP Treatment does not land while she lives.");
+  }
+  if (names.has("briar-witch-iseria")) {
+    const silenced = filled.filter((h) =>
+      ["lisette", "arbiter-vildred", "spirit-eye-celine", "apocalypse-ravi", "blood-moon-haste"].includes(h.id),
+    );
+    if (silenced.length) {
+      push(
+        4,
+        `Witch's Curse turns ${silenced.map((h) => h.name).join(" / ")} revive off while she lives.`,
+      );
+    }
+  }
+  if (names.has("belian")) {
+    const soulWin = filled.find(
+      (h) =>
+        h.id !== "belian" &&
+        (h.id === "briar-witch-iseria" ||
+          /soulburn 20:\s*extra turn/i.test(h.kit ?? "")),
+    );
+    if (soulWin) {
+      push(
+        4,
+        `Belian on this draft turns Soulburn off. ${soulWin.name}'s Soulburn does not exist.`,
+      );
+    }
   }
   if (names.has("mort") && filled.some((h) => h.id !== "mort" && h.tags.includes("counter"))) {
     push(4, "Mort on this draft turns your other counters off. Non-counter skills still play.");
@@ -831,7 +865,11 @@ function pitfallsFor(picks: { label: string; hero: Hero }[], read: DefenseRead):
     stripper &&
     !sanctuary &&
     read.uniqueEffects.some(
-      (u) => /^skill nullifier$/i.test(u.name) || /guardian angel/i.test(u.name),
+      (u) =>
+        /guardian angel|forest blessing|hysteria/i.test(u.name) ||
+        (/^skill nullifier$/i.test(u.name) &&
+          (u.heroId === "fallen-cecilia" ||
+            u.heroId === "angel-of-light-angelica")),
     )
   ) {
     push(6, `Skill Nullifier eats the first skill. Do not open with ${stripper.name}.`);
@@ -1061,16 +1099,21 @@ function whyFor(recipe: Recipe, read: DefenseRead, filled: Hero[]): string[] {
       );
     }
   }
-  if (
-    names.has("hecate") &&
-    (read.roles.includes("revive") ||
-      read.uniqueEffects.some((u) =>
-        /offering|scales of equity/i.test(u.name),
-      ))
-  ) {
-    why.push(
-      "Death's Dominion: no revive, no Immortal. Her third skill ignores damage sharing.",
-    );
+  if (names.has("hecate")) {
+    const wallRevives =
+      read.roles.includes("revive") ||
+      read.uniqueEffects.some((u) => isReviveUnique(u.name));
+    if (wallRevives) {
+      why.push(
+        "Death's Dominion: no revive, no Immortal. Her third skill ignores damage sharing.",
+      );
+    } else if (
+      read.uniqueEffects.some((u) => /offering|scales of equity/i.test(u.name))
+    ) {
+      why.push(
+        "Her third skill ignores damage sharing on heroes. Do not spend it into the front unless the share is already down.",
+      );
+    }
   }
   if (
     names.has("commander-pavel") &&
@@ -1540,6 +1583,30 @@ function recipesFor(read: DefenseRead): Recipe[] {
       return (ia === -1 ? 40 : ia) - (ib === -1 ? 40 : ib);
     });
   }
+  const reviveThreat =
+    read.roles.includes("revive") ||
+    read.uniqueEffects.some((u) => isReviveUnique(u.name));
+  if (reviveThreat && !hit.some((r) => r.id === "anti-revive-burst")) {
+    const extra = all.find((r) => r.id === "anti-revive-burst");
+    if (extra) hit = [...hit, extra];
+  }
+  if (
+    !sanctuary &&
+    read.archetype !== "injury-grind" &&
+    read.archetype !== "harsetti-stall" &&
+    !read.roles.includes("soulblock") &&
+    read.uniqueEffects.some((u) =>
+      /shield of holy spirit|bastet roar/i.test(u.name),
+    )
+  ) {
+    const extra = all.find((r) => r.id === "strip-control");
+    if (extra) {
+      hit = [
+        extra,
+        ...hit.filter((r) => r.id !== "strip-control" && r.id !== "evasion-bait"),
+      ];
+    }
+  }
   if (hit.length > 0) return hit;
   return all.filter((r) => r.vs.includes("bruiser-mix"));
 }
@@ -1574,7 +1641,6 @@ export function recommendCounters(
     if (cannotMiss && recipe.id === "evasion-bait") continue;
     const race =
       recipe.id === "outspeed-cleave" ||
-      recipe.id === "anti-revive-burst" ||
       recipe.id === "strip-control" ||
       recipe.id === "turn2-control";
     if (wallOpeners.length > 0 && race) {
