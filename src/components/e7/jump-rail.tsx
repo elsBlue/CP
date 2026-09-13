@@ -121,11 +121,11 @@ export function JumpRail({
   return (
     <nav
       aria-label="On this page"
-      className="pointer-events-none fixed top-20 right-0 bottom-20 z-30 flex justify-end md:bottom-8"
+      className="scout-rail-dock pointer-events-none fixed top-20 bottom-20 z-30 flex justify-end md:bottom-8"
     >
       <div
         className={cn(
-          "scout-rail pointer-events-auto flex items-stretch gap-2 py-2 pr-[max(0.5rem,env(safe-area-inset-right))] pl-5 transition-[opacity,transform] duration-300 ease-[var(--ease-smooth-out)] motion-reduce:transition-none",
+          "scout-rail pointer-events-auto flex items-stretch gap-2 py-2 pr-1 pl-5 transition-[opacity,transform] duration-300 ease-[var(--ease-smooth-out)] motion-reduce:transition-none",
           compact ? "h-full" : "my-auto",
           shown
             ? "translate-x-0 opacity-100"
